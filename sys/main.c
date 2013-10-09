@@ -64,7 +64,7 @@ void boot(void)
                &physbase,
                (void*)(uint64_t)loader_stack[4]
        );
-        clear_screen();
+       clear_screen();
 
 // code snippet to invoke the divide-by-zero interrupt
 //      int a = 5;

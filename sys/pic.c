@@ -2,6 +2,7 @@
 
 #include <defs.h>
 #include <pic.h>
+#include <common.h>
 
 #define PIC1		0x20		/* IO base address for master PIC */
 #define PIC2		0xA0		/* IO base address for slave PIC */
@@ -30,21 +31,6 @@
  
 void pic_remap(uint8_t, uint8_t);
 
-// Writing to the port
-void outb( unsigned short port, unsigned char val )
-{
-    __asm__ __volatile__ ( "outb %0, %1"
-                  : : "a"(val), "Nd"(port) );
-}
-
-// Reading from the port
-unsigned char inb( unsigned short port )
-{
-    unsigned char ret;
-    __asm__ __volatile__ ( "inb %1, %0"
-                  : "=a"(ret) : "Nd"(port) );
-    return ret;
-}
 
 // To wait while I/O is happening
 void io_wait( void )

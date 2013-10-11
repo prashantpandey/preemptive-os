@@ -4,6 +4,7 @@
 #include <idt.h>
 #include <stdio.h>
 #include <pic.h>
+#include <common.h>
 
 int tick = 0;
 int total_time = 0;

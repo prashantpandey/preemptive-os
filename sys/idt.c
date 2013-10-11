@@ -5,6 +5,7 @@
 #include <idt.h>
 #include <pic.h>
 #include <timer.h>
+#include <common.h>
 
 extern void irq0();
 extern void irq1();
@@ -48,20 +49,6 @@ char* exception_messages_isr[] = {"Division By Zero", "Debug","Non Maskable Inte
  * Other utility functions 
  */
 
-// Copy len bytes from src to dest.
-void memcpy(uint16_t *dest, const uint16_t *src, uint32_t len)
-{
-	const uint16_t *sp = (const uint16_t *)src;
-    	uint16_t *dp = (uint16_t *)dest;
-    	for(; len != 0; len--) *dp++ = *sp++;
-}
-
-// Write len copies of val into dest.
-void memset(uint64_t *dest, uint32_t val, uint32_t len)
-{
-    	uint16_t *temp = (uint16_t *)dest;
-    	for ( ; len != 0; len--) *temp++ = val;
-}
 
 /* Loads the IDTR with address of IDT */
 void lidt() {

@@ -3,6 +3,7 @@
 #include <defs.h>
 #include <stdio.h>
 #include <pic.h>
+#include <common.h>
 
 // global declaration of flag
 static unsigned int flag = 0;

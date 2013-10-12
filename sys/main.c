@@ -25,7 +25,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 		}
 	}
 	*/	
-	map_physical_address(modulep, (uint64_t)physbase, (uint64_t)physfree);
+	map_physical_address(modulep, (uint64_t)physfree);
 	// kernel starts here
 	while(1);
 }

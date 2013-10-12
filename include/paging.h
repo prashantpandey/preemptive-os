@@ -105,6 +105,6 @@ pte *get_page(uint64_t address, int make, pml4e *dir);
 **/
 void page_fault();
 
-void map_physical_address(uint32_t* modulep, uint64_t physbase, uint64_t physfree);
+void map_physical_address(uint32_t* modulep, uint64_t physfree);
 
 #endif

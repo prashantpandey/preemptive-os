@@ -7,8 +7,9 @@
 uint64_t *frames;
 uint32_t nframes;
 
-// Defined in kheap.c
-extern uint64_t placement_address;
+uint64_t limit = 0x7ffe000;
+uint64_t physfree;
+extern char kernmem, physbase;
 
 // Macros used in the bitset algorithms.
 #define INDEX_FROM_BIT(a) (a/(8*8))
@@ -64,7 +65,8 @@ static uint64_t first_frame()
 }
 */
 
-void map_physical_address(uint32_t* modulep, uint64_t physbase, uint64_t physfree)
+/* Will create a free list of physical pages. */
+void map_physical_address(uint32_t* modulep, uint64_t physfree)
 {
 	struct smap_t {
                 uint64_t base, length;
@@ -77,10 +79,8 @@ void map_physical_address(uint32_t* modulep, uint64_t physbase, uint64_t physfre
 			
                 }
         }
-	
-	int limit = 0x7ffe000;
 		
-	printf("%p\n", physfree);
+	printf("%p %p\n", &physbase, &kernmem);
 	//rounding off the physfree to 4KB page size
 	physfree = (physfree/4096);
 	physfree = physfree + 4096;
@@ -92,16 +92,18 @@ void map_physical_address(uint32_t* modulep, uint64_t physbase, uint64_t physfre
 	printf("Number of pages from %p to %p: memseg: %p  is: %d", physfree, limit, memseg, nframes);
 }
 
-/*
-**
+
+/**
   Sets up the environment, page directories etc and
   enables paging.
-**
+**/
 void initialise_paging()
 {
+
 }
 
-**
+
+/**
   Causes the specified page directory to be loaded into the
   CR3 register.
 **

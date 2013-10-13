@@ -133,7 +133,8 @@ struct PAGE
 typedef struct PAGE page;
 
 //Declaration of page free list
-page *page_free_list;
+page *pages;
+static page *page_free_list;
 
 /**
   Sets up the environment, page directories etc and

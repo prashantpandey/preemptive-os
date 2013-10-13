@@ -4,11 +4,8 @@
 #include <defs.h>
 #include <common.h>
 
-// To store all the physical pages.
-uint64_t *frames;
+uint64_t *frames;	// To store all the physical pages.
 uint32_t nframes;	// Number of physical pages
-
-page *page_table;
 
 uint64_t physfree;
 extern char kernmem, physbase;
@@ -141,11 +138,17 @@ void initialise_paging()
 	pde_table[0].ptba = PAGE_ALIGN(pte_table);
 	
 	// Declaration of page table linked list. But since we are using the bitmap to store the page info. it is commented	
+	/*
 	page_table = (page*) boot_alloc(sizeof(page) * nframes);
 	printf("\nPage tables: %p nframe: %d size_page: %d", page_table, nframes, sizeof(page));
 	memset((uint64_t *)page_table, 0, (sizeof(page) * nframes));
-	
-	
+	*/
+	uint32_t i;
+	physaddr_t pa;
+	for (i = 0; i < nframes; i++) {
+		
+	}
+ 
 }
 
 

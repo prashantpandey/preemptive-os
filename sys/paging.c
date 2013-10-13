@@ -4,14 +4,12 @@
 #include <defs.h>
 #include <common.h>
 
-// Global declaration
-uint32_t PAGESIZE = 4096;
-
 // To store all the physical pages.
 uint64_t *frames;
 uint32_t nframes;	// Number of physical pages
 
-uint64_t limit = 0x7ffe000;
+page *page_table;
+
 uint64_t physfree;
 extern char kernmem, physbase;
 
@@ -85,21 +83,20 @@ void map_physical_address(uint32_t* modulep, uint64_t physfree_limit)
         }
 		
 	physfree = physfree_limit;
-	printf("%p %p\n", &physbase, &kernmem);
+	printf("%p %p %p\n", physfree, &physbase, &kernmem);
 	//rounding off the physfree to 4KB page size
-	physfree_limit = (physfree_limit/4096);
-	physfree_limit = physfree_limit + 4096;
+	physfree_limit = PAGE_ROUNDOFF(physfree_limit, PAGESIZE);
 
 	// The physical pages are mapped from physfree - limit.
-	uint64_t memseg = (limit - physfree_limit);
+	uint64_t memseg = (MEM_LIMIT - physfree_limit);
 	nframes = (memseg/0x1000);
 	memset(frames, 0, INDEX_FROM_BIT(nframes));	
 	
-	printf("Number of pages from %p to %p: memseg: %p  is: %d", physfree_limit, limit, memseg, nframes);
+	printf("Number of pages from %p to %p: memseg: %p  is: %d", physfree_limit, MEM_LIMIT, memseg, nframes);
 	initialise_paging();
 }
 
-
+/* Will allocate pages of memory above physfree when paging is not enabled. */
 static void * boot_alloc(uint32_t n) 
 {
 	static uint64_t nextfree;	// virtual address of next byte of free memory
@@ -111,19 +108,26 @@ static void * boot_alloc(uint32_t n)
 		result = nextfree;
 	}
 
-	nextfree += (PAGE_ALIGN(PAGE_ROUNDOFF(n, PAGESIZE), PAGESIZE) * PAGESIZE);
+	nextfree = (PAGE_ROUNDOFF(nextfree + n, PAGESIZE));
 
 	return (void *)result;			
 }
 
 
-/**
+/*
   Sets up the environment, page directories etc and
   enables paging.
-**/
+*/
 void initialise_paging()
 {
-	printf("\nMemeory allocated: %p", ((uint64_t)boot_alloc(1024)));
+
+	pml4e_table = (pml4e*) boot_alloc(sizeof(pml4e));
+	printf("\nKernel page directory level 1: %p", pml4e_table);
+	memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));	
+		
+	page_table = (page*) boot_alloc(sizeof(page) * nframes);
+	printf("\nPage tables: %p", page_table);
+	memset((uint64_t *)page_table, 0, (sizeof(page) * nframes));
 }
 
 

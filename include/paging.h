@@ -8,12 +8,14 @@ extern uint32_t k_npages;
 extern uint32_t u_npages;
 extern uint64_t physfree;
 
+#define PAGESIZE 4096
+#define MEM_LIMIT 0x7ffe000
+
 #define PAGE_ROUNDOFF(physaddress, page_size) _page_roundoff(physaddress, page_size)
 
 static inline uint64_t _page_roundoff(uint64_t physaddress, uint32_t page_size) 
 {
-	physaddress = physaddress/page_size;
-	physaddress = physaddress + page_size;
+	physaddress += (page_size - physaddress%page_size);
 	return physaddress;
 }
 
@@ -21,7 +23,7 @@ static inline uint64_t _page_roundoff(uint64_t physaddress, uint32_t page_size)
 
 static inline uint64_t _page_align(uint64_t physaddress, uint32_t page_size)
 {
-	return physaddress/page_size;
+	return physaddress -= physaddress%page_size;
 }
 
 #define K_PHYS_ADDRESS(_kva, k_lower_limit) _k_phys_address(_kva, k_lower_limit)
@@ -45,6 +47,8 @@ static inline uint64_t _k_v_address(uint64_t kpa, uint64_t k_lower_limit)
 	}
 	return (kpa + k_lower_limit);
 }
+
+#define PAGE_OFF(la) (((uint64_t) (la)) & 0xFFF)
 
 struct PML4E
 {
@@ -117,10 +121,20 @@ struct PTE
 typedef struct PTE pte;
 
 // Declaration of the table structures
-pml4e pml4e_table[512];
-pdpe pdpe_table[512];
-pde pde_table[512];
-pte pte_table[512];
+pml4e *pml4e_table;
+pdpe *pdpe_table;
+pde *pde_table;
+pte *pte_table;
+
+struct PAGE 
+{
+	struct PAGE *next_page;
+	uint32_t pp_ref_count;
+}__attribute__((packed));
+typedef struct PAGE page;
+
+//Declaration of page free list
+page *page_free_list;
 
 /**
   Sets up the environment, page directories etc and

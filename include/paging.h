@@ -92,12 +92,10 @@ struct PDE
         uint32_t pwt:1;
         uint32_t pcd:1;
         uint32_t accessed:1;   // Has the page been accessed since last refresh?
-        uint32_t d:1;
-        uint32_t g:1;
+        uint32_t ign_1:1;
+        uint32_t ign_2:1;
         uint32_t avl:3;
-        uint32_t pat:1;
-        uint32_t mbz:8;
-        uint64_t ptba:31;
+        uint64_t ptba:40;
         uint32_t available:10;
         uint32_t nx:1;
 }__attribute__((packed));
@@ -112,9 +110,10 @@ struct PTE
         uint32_t pcd:1;
         uint32_t accessed:1;   // Has the page been accessed since last refresh?
         uint32_t d:1;
+	uint32_t pat:1;
         uint32_t g:1;
         uint32_t avl:3;
-        uint64_t ppba:31;
+        uint64_t ppba:40;
         uint32_t available:10;
         uint32_t nx:1;
 }__attribute__((packed));

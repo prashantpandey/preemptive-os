@@ -64,12 +64,12 @@ void boot(void)
 //      int arg = 0;
 //        __asm__("int %0\n" : : "N"((arg)) : "cc", "memory");
 
-       start(
-               (uint32_t*)((char*)(uint64_t)loader_stack[3] + (uint64_t)&kernmem - (uint64_t)&physbase),
-               &physbase,
-               (void*)(uint64_t)loader_stack[4]
-       );
-       clear_screen();
+       	clear_screen();
+       	start(
+        	(uint32_t*)((char*)(uint64_t)loader_stack[3] + (uint64_t)&kernmem - (uint64_t)&physbase),
+               	&physbase,
+               	(void*)(uint64_t)loader_stack[4]
+       	);
 
 // code snippet to invoke the divide-by-zero interrupt
 //      int a = 5;

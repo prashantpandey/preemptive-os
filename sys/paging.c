@@ -107,9 +107,8 @@ static void * boot_alloc(uint32_t n)
 	} else {
 		result = nextfree;
 	}
-
 	nextfree = (PAGE_ROUNDOFF(nextfree + n, PAGESIZE));
-
+	
 	return (void *)result;			
 }
 
@@ -120,14 +119,33 @@ static void * boot_alloc(uint32_t n)
 */
 void initialise_paging()
 {
-
+	// creating the paging structures
 	pml4e_table = (pml4e*) boot_alloc(sizeof(pml4e));
 	printf("\nKernel page directory level 1: %p", pml4e_table);
 	memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));	
+
+	pdpe_table = (pdpe*) boot_alloc(sizeof(pdpe));
+	printf("\nKernel page directory level 2: %p", pdpe_table);
+	memset((uint64_t *)pdpe_table, 0, (sizeof(pdpe)));	
+
+	pde_table = (pde*) boot_alloc(sizeof(pde));
+	printf("\nKernel page directory level 3: %p", pde_table);
+	memset((uint64_t *)pde_table, 0, (sizeof(pde)));
+
+	pte_table = (pte*) boot_alloc(sizeof(pte));
+	printf("\nKernel page directory level 4: %p", pte_table);
+	memset((uint64_t *)pte_table, 0, (sizeof(pte)));	
 		
+	pml4e_table[0].pdpba = PAGE_ALIGN(pdpe_table);
+	pdpe_table[0].pdba = PAGE_ALIGN(pde_table);
+	pde_table[0].ptba = PAGE_ALIGN(pte_table);
+	
+	// Declaration of page table linked list. But since we are using the bitmap to store the page info. it is commented	
 	page_table = (page*) boot_alloc(sizeof(page) * nframes);
-	printf("\nPage tables: %p", page_table);
+	printf("\nPage tables: %p nframe: %d size_page: %d", page_table, nframes, sizeof(page));
 	memset((uint64_t *)page_table, 0, (sizeof(page) * nframes));
+	
+	
 }
 
 
@@ -156,7 +174,7 @@ void page_fault()
 }
 */
 
-/*
+/*  
 void initialise_paging()
 {
    // The size of physical memory. For the moment we
@@ -193,7 +211,8 @@ void initialise_paging()
    switch_page_directory(kernel_directory);
 }
 
-void switch_page_directory(page_directory_t *dir)
+*
+void switch_page_directory(pml4e *dir)
 {
    current_directory = dir;
    asm volatile("mov %0, %%cr3":: "r"(&dir->tablesPhysical));
@@ -203,6 +222,7 @@ void switch_page_directory(page_directory_t *dir)
    asm volatile("mov %0, %%cr0":: "r"(cr0));
 }
 
+*
 page_t *get_page(u32int address, int make, page_directory_t *dir)
 {
    // Turn the address into an index.

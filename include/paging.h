@@ -8,7 +8,7 @@ extern uint32_t k_npages;
 extern uint32_t u_npages;
 extern uint64_t physfree;
 
-#define PAGE_ROUNDOFF _page_roundoff(_phys_address, _page_size)
+#define PAGE_ROUNDOFF(physaddress, page_size) _page_roundoff(physaddress, page_size)
 
 static inline uint64_t _page_roundoff(uint64_t physaddress, uint32_t page_size) 
 {
@@ -17,15 +17,14 @@ static inline uint64_t _page_roundoff(uint64_t physaddress, uint32_t page_size)
 	return physaddress;
 }
 
-#define PAGE_ALIGN _page_align(_phys_address, _page_size) 
+#define PAGE_ALIGN(physaddress, page_size) _page_align(physaddress, page_size) 
 
 static inline uint64_t _page_align(uint64_t physaddress, uint32_t page_size)
 {
 	return physaddress/page_size;
 }
 
-
-#define K_PHYS_ADDRESS _k_phys_address(_kva, k_lower_limit)
+#define K_PHYS_ADDRESS(_kva, k_lower_limit) _k_phys_address(_kva, k_lower_limit)
 
 static inline uint64_t _k_phys_address(uint64_t kva, uint64_t k_lower_limit) 
 {
@@ -36,7 +35,7 @@ static inline uint64_t _k_phys_address(uint64_t kva, uint64_t k_lower_limit)
 	return  (kva - k_lower_limit);
 }
 
-#define K_V_ADDRESS _k_v_address(kpa, k_lower_limit)
+#define K_V_ADDRESS(kpa, k_lower_limit) _k_v_address(kpa, k_lower_limit)
 
 static inline uint64_t _k_v_address(uint64_t kpa, uint64_t k_lower_limit)
 {

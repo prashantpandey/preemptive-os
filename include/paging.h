@@ -2,7 +2,50 @@
 #define PAGING_H
 
 #include <defs.h>
-#include <pic.h>
+#include <stdio.h>
+
+extern uint32_t k_npages;
+extern uint32_t u_npages;
+extern uint64_t physfree;
+
+#define PAGE_ROUNDOFF _page_roundoff(_phys_address, _page_size)
+
+static inline uint64_t _page_roundoff(uint64_t physaddress, uint32_t page_size) 
+{
+	physaddress = physaddress/page_size;
+	physaddress = physaddress + page_size;
+	return physaddress;
+}
+
+#define PAGE_ALIGN _page_align(_phys_address, _page_size) 
+
+static inline uint64_t _page_align(uint64_t physaddress, uint32_t page_size)
+{
+	return physaddress/page_size;
+}
+
+
+#define K_PHYS_ADDRESS _k_phys_address(_kva, k_lower_limit)
+
+static inline uint64_t _k_phys_address(uint64_t kva, uint64_t k_lower_limit) 
+{
+	if(kva < k_lower_limit) 
+	{
+		printf("Invalid kernel virtual address: %p", kva);
+	}
+	return  (kva - k_lower_limit);
+}
+
+#define K_V_ADDRESS _k_v_address(kpa, k_lower_limit)
+
+static inline uint64_t _k_v_address(uint64_t kpa, uint64_t k_lower_limit)
+{
+	if(kpa > physfree)
+	{
+		printf("Invalid kernel physical address: %p", kpa);
+	}
+	return (kpa + k_lower_limit);
+}
 
 struct PML4E
 {
@@ -79,7 +122,6 @@ pml4e pml4e_table[512];
 pdpe pdpe_table[512];
 pde pde_table[512];
 pte pte_table[512];
-
 
 /**
   Sets up the environment, page directories etc and

@@ -24,7 +24,7 @@
 #define PDPEX(la)               ((((uint64_t) (la)) >> PDPESHIFT) & 0x1FF)
 
 // PML4E Index
-#define PML4E(la)               ((((uint64_t) (la)) >> PML4ESHIFT) & 0x1FF)
+#define PML4EX(la)               ((((uint64_t) (la)) >> PML4ESHIFT) & 0x1FF)
 
 // offset in page
 #define PGOFF(la)        	(((uint64_t) (la)) & 0xFFF)

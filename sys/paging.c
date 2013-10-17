@@ -147,7 +147,7 @@ void page_free(page *pp)
 // Decrement the reference count on a page,
 // freeing it if there are no more refs.
 //
-void page_decref(struct Page* pp)
+void page_decref(page* pp)
 {
         if (--pp->pp_ref == 0)
                 page_free(pp);

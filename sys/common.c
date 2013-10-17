@@ -17,7 +17,7 @@ unsigned char inb( unsigned short port )
 }
 
 // Copy len bytes from src to dest.
-void memcpy(uint16_t *dest, const uint16_t *src, uint32_t len)
+void memcpy(void *dest, void *src, uint32_t len)
 {
         const uint16_t *sp = (const uint16_t *)src;
         uint16_t *dp = (uint16_t *)dest;
@@ -25,7 +25,7 @@ void memcpy(uint16_t *dest, const uint16_t *src, uint32_t len)
 }
 
 // Write len copies of val into dest.
-void memset(uint64_t *dest, uint32_t val, uint32_t len)
+void memset(void *dest, uint32_t val, uint32_t len)
 {
         uint16_t *temp = (uint16_t *)dest;
         for ( ; len != 0; len--) *temp++ = val;

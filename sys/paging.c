@@ -1,68 +1,18 @@
 #include <paging.h>
+#include <mmu.h>
 #include <stdio.h>
 #include <pic.h>
 #include <defs.h>
 #include <common.h>
 
-uint64_t *frames;	// To store all the physical pages.
 uint32_t nframes;	// Number of physical pages
+uint32_t nbase_mem = 0;
+uint32_t nroof_mem = 0;
 
 uint64_t physfree;
 extern char kernmem, physbase;
+static page *page_free_list;
 
-// Macros used in the bitset algorithms.
-#define INDEX_FROM_BIT(a) (a/(8*8))
-#define OFFSET_FROM_BIT(a) (a%(8*8))
-
-// Static function to set a bit in the frames bitset
-void set_frame(uint64_t frame_addr)
-{
-   	uint64_t frame = frame_addr/0x1000;
-   	uint64_t idx = INDEX_FROM_BIT(frame);
-   	uint32_t off = OFFSET_FROM_BIT(frame);
-   	frames[idx] |= (0x1 << off);
-}
-
-// Static function to clear a bit in the frames bitset
-void clear_frame(uint64_t frame_addr)
-{
-   	uint64_t frame = frame_addr/0x1000;
-   	uint64_t idx = INDEX_FROM_BIT(frame);
-   	uint32_t off = OFFSET_FROM_BIT(frame);
-   	frames[idx] &= ~(0x1 << off);
-}
-
-/*
-// Static function to test if a bit is set.
-static uint64_t test_frame(uint64_t frame_addr)
-{
-	uint64_t frame = frame_addr/0x1000;
-	uint64_t idx = INDEX_FROM_BIT(frame);
-	uint32_t off = OFFSET_FROM_BIT(frame);
-   	return (frames[idx] & (0x1 << off));
-}
-
-// Static function to find the first free frame.
-static uint64_t first_frame()
-{
-   uint32_t i, j;
-   for (i = 0; i < INDEX_FROM_BIT(nframes); i++)
-   {
-       if (frames[i] != 0xFFFFFFFF) // nothing free, exit early.
-       {
-           // at least one bit is free here.
-           for (j = 0; j < 64; j++)
-           {
-               uint64_t toTest = 0x1 << j;
-               if ( !(frames[i]&toTest) )
-               {
-                   return i*8*8+j;
-               }
-           }
-       }
-   }
-}
-*/
 
 /* Will create a free list of physical pages. */
 void map_physical_address(uint32_t* modulep, uint64_t physfree_limit)
@@ -75,21 +25,27 @@ void map_physical_address(uint32_t* modulep, uint64_t physfree_limit)
         for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
                 if (smap->type == 1 /* memory */ && smap->length != 0) {
                         printf("Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
-			
+			if(nbase_mem == 0) {
+				nbase_mem = PAGE_ALIGN(smap->base + smap->length, PGSIZE) / PGSIZE;
+			}
+			else {
+				nroof_mem = PAGE_ALIGN(smap->base, PGSIZE) / PGSIZE;
+			}
                 }
+		else {
+                        printf("Not Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
+		}
         }
 		
 	physfree = physfree_limit;
 	printf("%p %p %p\n", physfree, &physbase, &kernmem);
-	//rounding off the physfree to 4KB page size
-	physfree_limit = PAGE_ROUNDOFF(physfree_limit, PAGESIZE);
 
 	// The physical pages are mapped from physfree - limit.
-	uint64_t memseg = (MEM_LIMIT - physfree_limit);
+	uint64_t memseg = (MEM_LIMIT - 0x0);
 	nframes = (memseg/0x1000);
-	memset(frames, 0, INDEX_FROM_BIT(nframes));	
 	
-	printf("Number of pages from %p to %p: memseg: %p  is: %d", physfree_limit, MEM_LIMIT, memseg, nframes);
+	printf("\nNumber of pages from %p to %p: memseg: %p  is: %d", 0x0, MEM_LIMIT, memseg, nframes);
+	printf("\nNBase %d and NRoof %d", nbase_mem, nroof_mem);
 	initialise_paging();
 }
 
@@ -100,15 +56,14 @@ static void * boot_alloc(uint32_t n)
 	uint64_t result;
 
 	if (!nextfree) {
-		result = nextfree = PAGE_ROUNDOFF(physfree, PAGESIZE);
+		result = nextfree = PAGE_ROUNDOFF((uint64_t)(physfree + &kernmem), PGSIZE);
 	} else {
 		result = nextfree;
 	}
-	nextfree = (PAGE_ROUNDOFF(nextfree + n, PAGESIZE));
+	nextfree = (PAGE_ROUNDOFF(nextfree + n, PGSIZE));
 	
 	return (void *)result;			
 }
-
 
 /*
   Sets up the environment, page directories etc and
@@ -120,7 +75,7 @@ void initialise_paging()
 	pml4e_table = (pml4e*) boot_alloc(sizeof(pml4e));
 	printf("\nKernel page directory level 1: %p", pml4e_table);
 	memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));	
-
+/*
 	pdpe_table = (pdpe*) boot_alloc(sizeof(pdpe));
 	printf("\nKernel page directory level 2: %p", pdpe_table);
 	memset((uint64_t *)pdpe_table, 0, (sizeof(pdpe)));	
@@ -133,24 +88,70 @@ void initialise_paging()
 	printf("\nKernel page directory level 4: %p", pte_table);
 	memset((uint64_t *)pte_table, 0, (sizeof(pte)));	
 		
-	pml4e_table[0].pdpba = PAGE_ALIGN(pdpe_table);
-	pdpe_table[0].pdba = PAGE_ALIGN(pde_table);
-	pde_table[0].ptba = PAGE_ALIGN(pte_table);
+	pml4e_table[0].entry = PAGE_ALIGN((uint64_t)&pdpe_table, PGSIZE);
+	pdpe_table[0].entry = PAGE_ALIGN((uint64_t)&pde_table, PGSIZE);
+	pde_table[0].entry = PAGE_ALIGN((uint64_t)&pte_table, PGSIZE);
+*/	
+	pages = (page*) boot_alloc(sizeof(page) * nframes);
+	printf("\nPage tables: %p nframe: %d size_page: %d", pages, nframes, sizeof(page));
+	memset((uint64_t *)pages, 0, (sizeof(page) * nframes));
 	
-	// Declaration of page table linked list. But since we are using the bitmap to store the page info. it is commented	
-	/*
-	page_table = (page*) boot_alloc(sizeof(page) * nframes);
-	printf("\nPage tables: %p nframe: %d size_page: %d", page_table, nframes, sizeof(page));
-	memset((uint64_t *)page_table, 0, (sizeof(page) * nframes));
-	*/
 	uint32_t i;
-	physaddr_t pa;
 	for (i = 0; i < nframes; i++) {
-		
-	}
- 
+		if (i==0) {						// To exclude memory for the BIOS/video
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		} else if(i < nbase_mem) {				// Free memory
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		} else if ((i < nroof_mem)				// To exclude the hole, kernel space and the memory already allocated using bot_alloc
+			|| (i < (PAGE_ALIGN((uint64_t)boot_alloc(0) - kernmem, PGSIZE)))){
+			pages[i].pp_ref++;
+			pages[i].pp_link = NULL;
+		} else {						// Rest all the memory above the physfree + boot_alloc(nextfree)
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
+	} 
 }
 
+// Will allocate a page from the free list
+page* page_alloc(int alloc_flags)
+{
+	page* pp = NULL;
+	if (!page_free_list)
+		return NULL;
+	pp = page_free_list;
+	page_free_list = page_free_list->pp_link;
+
+	if (alloc_flags & ALLOC_ZERO)
+		memset(page2kva(pp), 0, PGSIZE);
+	return pp;
+}
+
+// Return a page to the free list.
+// (This function should only be called when pp->pp_ref reaches 0.)
+//
+void page_free(page *pp)
+{
+        if(pp->pp_ref == 0) {
+		printf("The page is already free..!!!");
+		while(1);
+	}
+        pp->pp_link = page_free_list;
+        page_free_list = pp;
+}
+
+// Decrement the reference count on a page,
+// freeing it if there are no more refs.
+//
+void page_decref(struct Page* pp)
+{
+        if (--pp->pp_ref == 0)
+                page_free(pp);
+}
 
 /**
   Causes the specified page directory to be loaded into the

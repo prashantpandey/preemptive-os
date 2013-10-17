@@ -6,8 +6,8 @@
 
 void outb( unsigned short port, unsigned char val );
 unsigned char inb( unsigned short port );
-void memcpy(uint16_t *dest, const uint16_t *src, uint32_t len);
-void memset(uint64_t *dest, uint32_t val, uint32_t len);
+void memcpy(void* dest, void *src, uint32_t len);
+void memset(void *dest, uint32_t val, uint32_t len);
 
 static __inline void lcr0(uint64_t val) __attribute__((always_inline));
 static __inline uint64_t rcr0(void) __attribute__((always_inline));
@@ -66,6 +66,7 @@ rcr4(void)
 	__asm __volatile("movl %%cr4,%0" : "=r" (cr4));
 	return cr4;
 }
+
 
 #endif
 

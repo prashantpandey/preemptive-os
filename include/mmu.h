@@ -29,6 +29,9 @@
 // offset in page
 #define PGOFF(la)        	(((uint64_t) (la)) & 0xFFF)
 
+// Address in page table or page directory entry
+#define PTE_ADDR(pte)        ((uint64_t) (pte) & ~0xFFF)
+
 #define PML4ESHIFT		39
 #define PDPESHIFT		30
 #define PDESHIFT		21

@@ -105,7 +105,7 @@ void initialise_paging()
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
-		} else if ((i < nroof_mem)				// To exclude the hole, kernel space and the memory already allocated using bot_alloc
+		} else if ((i > nroof_mem)				// To exclude the hole, kernel space and the memory already allocated using bot_alloc
 			|| (i < (PAGE_ALIGN((uint64_t)boot_alloc(0) - kernmem, PGSIZE)))){
 			pages[i].pp_ref++;
 			pages[i].pp_link = NULL;
@@ -152,6 +152,85 @@ void page_decref(page* pp)
         if (--pp->pp_ref == 0)
                 page_free(pp);
 }
+
+/* PDE walk */
+pte* pde_walk(pde* pde_t, const void* va, int create)
+{
+        pdpe* pde_e;
+        pde* pte_t;
+        page* pp;
+
+        pde_e = &pde_t[PDEX(va)];
+        if(*pde_e & PTE_P)
+        {
+                pte_t = (KADDR(PTE_ADDR(*pde_e)));
+        }
+        else
+        {
+                if(!create ||
+                   !(pp = page_alloc(ALLOC_ZERO)) ||
+                   !(pte_t = (pte*)page2kva(pp)))
+                        return NULL;
+
+                pp->pp_ref++;
+                *pde_e = PADDR(pte_t) | PTE_P | PTE_W | PTE_U;
+        }
+
+        return &pte_t[PTEX(va)];
+}
+
+/* PDPE walk */
+pte* pdpe_walk(pdpe* pdpe_t, const void* va, int create)
+{
+        pdpe* pdpe_e;
+        pde* pde_t;
+        page* pp;
+
+        pdpe_e = &pdpe_t[PDPEX(va)];
+        if(*pdpe_e & PTE_P)
+        {
+                pde_t = (KADDR(PTE_ADDR(*pdpe_e)));
+        }
+        else
+        {
+                if(!create ||
+                   !(pp = page_alloc(ALLOC_ZERO)) ||
+                   !(pde_t = (pde*)page2kva(pp)))
+                        return NULL;
+
+                pp->pp_ref++;
+                *pdpe_e = PADDR(pde_t) | PTE_P | PTE_W | PTE_U;
+        }
+
+        return pde_walk(pde_t, va, create);
+}
+
+/* PML4E walk */
+pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create) 
+{
+	pml4e* pml4e_e;
+	pdpe* pdpe_t;
+	page* pp;
+
+	pml4e_e = &pml4e_t[PML4EX(va)];
+	if(*pml4e_e & PTE_P) 
+	{
+		pdpe_t = (KADDR(PTE_ADDR(*pml4e_e)));
+	}
+	else
+	{
+		if(!create || 
+                   !(pp = page_alloc(ALLOC_ZERO)) ||
+                   !(pdpe_t = (pdpe*)page2kva(pp))) 
+                        return NULL;
+                    
+                pp->pp_ref++;
+                *pml4e_e = PADDR(pdpe_t) | PTE_P | PTE_W | PTE_U;
+        }
+
+        return pdpe_walk(pdpe_t, va, create);	
+}
+
 
 /**
   Causes the specified page directory to be loaded into the

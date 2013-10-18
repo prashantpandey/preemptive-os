@@ -29,29 +29,13 @@ static inline uint64_t _page_align(uint64_t physaddress, uint32_t page_size)
 
 
 /* page table structures */
-struct PML4E
-{
-        uint64_t entry;
-}__attribute__((packed));
-typedef struct PML4E pml4e;
+typedef uint64_t pml4e;
 
-struct PDPE
-{
-        uint64_t entry;
-}__attribute__((packed));
-typedef struct PDPE pdpe;
+typedef uint64_t pdpe;
 
-struct PDE
-{
-        uint64_t entry;
-}__attribute__((packed));
-typedef struct PDE pde;
+typedef uint64_t pde;
 
-struct PTE
-{
-        uint64_t entry;
-}__attribute__((packed));
-typedef struct PTE pte;
+typedef uint64_t pte;
 
 // Declaration of the table structures
 pml4e *pml4e_table;

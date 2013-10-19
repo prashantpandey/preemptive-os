@@ -8,10 +8,11 @@
 uint32_t nframes;	// Number of physical pages
 uint32_t nbase_mem = 0;
 uint32_t nroof_mem = 0;
+uint64_t global_nextfree;
 
 uint64_t physfree;
 extern char kernmem, physbase;
-static page *page_free_list;
+static page *page_free_list = NULL;
 
 
 /* Will create a free list of physical pages. */
@@ -60,8 +61,9 @@ static void * boot_alloc(uint32_t n)
 	} else {
 		result = nextfree;
 	}
-	nextfree = (PAGE_ROUNDOFF(nextfree + n, PGSIZE));
-	
+	if(n > 0) {
+		global_nextfree = nextfree = (PAGE_ROUNDOFF(nextfree + n, PGSIZE));
+	}
 	return (void *)result;			
 }
 
@@ -73,7 +75,8 @@ void initialise_paging()
 {
 	// creating the paging structures
 	pml4e_table = (pml4e*) boot_alloc(sizeof(pml4e));
-	printf("\nKernel page directory level 1: %p", pml4e_table);
+	printf("\nKernel page directory level 1: %p", ((uint64_t)pml4e_table - (uint64_t)&kernmem));
+	printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
 	memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));	
 /*
 	pdpe_table = (pdpe*) boot_alloc(sizeof(pdpe));
@@ -92,8 +95,11 @@ void initialise_paging()
 	pdpe_table[0].entry = PAGE_ALIGN((uint64_t)&pde_table, PGSIZE);
 	pde_table[0].entry = PAGE_ALIGN((uint64_t)&pte_table, PGSIZE);
 */	
+	
+	
 	pages = (page*) boot_alloc(sizeof(page) * nframes);
-	printf("\nPage tables: %p nframe: %d size_page: %d", pages, nframes, sizeof(page));
+	printf("\nPage tables: %p nframe: %d size_page: %d", ((uint64_t)pages - (uint64_t)&kernmem), nframes, sizeof(page));
+	printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
 	memset((uint64_t *)pages, 0, (sizeof(page) * nframes));
 	
 	uint32_t i;
@@ -105,8 +111,8 @@ void initialise_paging()
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
-		} else if ((i > nroof_mem)				// To exclude the hole, kernel space and the memory already allocated using bot_alloc
-			|| (i < (PAGE_ALIGN((uint64_t)boot_alloc(0) - kernmem, PGSIZE)))){
+		} else if ((i < nroof_mem)				// To exclude the hole, kernel space and the memory already allocated using bot_alloc
+			|| (i < (PAGE_ALIGN((uint64_t)boot_alloc(0) - (uint64_t)&kernmem, PGSIZE) / PGSIZE))){
 			pages[i].pp_ref++;
 			pages[i].pp_link = NULL;
 		} else {						// Rest all the memory above the physfree + boot_alloc(nextfree)
@@ -114,7 +120,10 @@ void initialise_paging()
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
 		}
-	} 
+	}
+	
+	for(i = 0; page_free_list != NULL; page_free_list = (page*)page_free_list->pp_link, i++) {}
+	printf("\n\nLength of Free List: %d", i); 
 }
 
 // Will allocate a page from the free list

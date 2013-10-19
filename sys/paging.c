@@ -14,6 +14,7 @@ uint64_t physfree;
 extern char kernmem, physbase;
 static page *page_free_list = NULL;
 
+void mem_init();
 
 /* Will create a free list of physical pages. */
 void map_physical_address(uint32_t* modulep, uint64_t physfree_limit)
@@ -47,7 +48,8 @@ void map_physical_address(uint32_t* modulep, uint64_t physfree_limit)
 	
 	printf("\nNumber of pages from %p to %p: memseg: %p  is: %d", 0x0, MEM_LIMIT, memseg, nframes);
 	printf("\nNBase %d and NRoof %d", nbase_mem, nroof_mem);
-	initialise_paging();
+	
+	mem_init();
 }
 
 /* Will allocate pages of memory above physfree when paging is not enabled. */
@@ -71,37 +73,15 @@ static void * boot_alloc(uint32_t n)
   Sets up the environment, page directories etc and
   enables paging.
 */
-void initialise_paging()
+void page_init()
 {
-	// creating the paging structures
-	pml4e_table = (pml4e*) boot_alloc(sizeof(pml4e));
-	printf("\nKernel page directory level 1: %p", ((uint64_t)pml4e_table - (uint64_t)&kernmem));
-	printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
-	memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));	
-/*
-	pdpe_table = (pdpe*) boot_alloc(sizeof(pdpe));
-	printf("\nKernel page directory level 2: %p", pdpe_table);
-	memset((uint64_t *)pdpe_table, 0, (sizeof(pdpe)));	
-
-	pde_table = (pde*) boot_alloc(sizeof(pde));
-	printf("\nKernel page directory level 3: %p", pde_table);
-	memset((uint64_t *)pde_table, 0, (sizeof(pde)));
-
-	pte_table = (pte*) boot_alloc(sizeof(pte));
-	printf("\nKernel page directory level 4: %p", pte_table);
-	memset((uint64_t *)pte_table, 0, (sizeof(pte)));	
-		
-	pml4e_table[0].entry = PAGE_ALIGN((uint64_t)&pdpe_table, PGSIZE);
-	pdpe_table[0].entry = PAGE_ALIGN((uint64_t)&pde_table, PGSIZE);
-	pde_table[0].entry = PAGE_ALIGN((uint64_t)&pte_table, PGSIZE);
-*/	
-	
-	
+	// Creating the page list for all the pages in 128 MB RAM
 	pages = (page*) boot_alloc(sizeof(page) * nframes);
 	printf("\nPage tables: %p nframe: %d size_page: %d", ((uint64_t)pages - (uint64_t)&kernmem), nframes, sizeof(page));
 	printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
 	memset((uint64_t *)pages, 0, (sizeof(page) * nframes));
 	
+	// Will allocate the Page free List
 	uint32_t i;
 	for (i = 0; i < nframes; i++) {
 		if (i==0) {						// To exclude memory for the BIOS/video
@@ -123,7 +103,7 @@ void initialise_paging()
 	}
 	
 	for(i = 0; page_free_list != NULL; page_free_list = (page*)page_free_list->pp_link, i++) {}
-	printf("\n\nLength of Free List: %d", i); 
+	printf("\nLength of Free List: %d", i); 
 }
 
 // Will allocate a page from the free list
@@ -146,7 +126,7 @@ page* page_alloc(int alloc_flags)
 void page_free(page *pp)
 {
         if(pp->pp_ref == 0) {
-		printf("The page is already free..!!!");
+		printf("\nThe page is already free..!!!");
 		while(1);
 	}
         pp->pp_link = page_free_list;
@@ -240,6 +220,58 @@ pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create)
         return pdpe_walk(pdpe_t, va, create);	
 }
 
+/* To create the mapping from VA space to PA space for a given size */
+void boot_map_region(pml4e* pml4e_t, uint64_t va, uint32_t size, uint64_t pa, int perm)
+{
+	uint64_t va_next = va;
+	uint64_t pa_next = pa;
+	pte* pte;
+	//uint64_t pa_check;
+	
+	uint32_t number_pages = size/PGSIZE;
+	int i = 0;
+	for(i = 0; i < number_pages; i++)
+	{
+		pte = pml4e_walk(pml4e_t, (void *)va_next, 1);
+		if(!pte) {
+			return;
+		}
+		*pte = (PTE_ADDR(pa_next) | perm | PTE_P);
+                va_next += PGSIZE;
+                pa_next += PGSIZE;
+	}
+}
+
+/* Sets up the Kernel page dir and initialize paging. */
+void mem_init() 
+{
+	uint64_t cr0;
+	//uint32_t n;
+	
+	// creating the paging structures
+        pml4e_table = (pml4e*) boot_alloc(sizeof(pml4e));
+        printf("\nKernel page directory level 1: %p", ((uint64_t)pml4e_table - (uint64_t)&kernmem));
+        printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
+        memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));
+
+	page_init();
+	
+	// map the kernel space
+	boot_map_region(pml4e_table, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
+	// map the BIOS/Video memory region	
+	//boot_map_region(kern_pgdir, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
+	
+	lcr3(PADDR(pml4e_table));
+	
+	// entry.S set the really important flags in cr0 (including enabling
+        // paging).  Here we configure the rest of the flags that we care about.
+        cr0 = rcr0();
+        cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_MP;
+        cr0 &= ~(CR0_TS|CR0_EM);
+        lcr0(cr0);
+	
+	//TODO: write code to check for installed pages
+}
 
 /**
   Causes the specified page directory to be loaded into the

@@ -38,10 +38,7 @@
 #define PTESHIFT		12
 
 // Page directory and page table constants.
-#define NPML4EENTRIES        	512                // page directory entries per page directory
-#define NPDPEENTRIES       	512                // page table entries per page table
-#define NPTEENTRIES        	512                // page table entries per page table
-#define NPTEENTRIES        	512                // page table entries per page table
+#define NUMBER_ENTRIES        	512                // page table entries per page table
 
 
 // Page table/directory entry flags.

@@ -245,7 +245,7 @@ void boot_map_region(pml4e* pml4e_t, uint64_t va, uint32_t size, uint64_t pa, in
 /* Sets up the Kernel page dir and initialize paging. */
 void mem_init() 
 {
-	uint64_t cr0;
+	//uint64_t cr0;
 	//uint32_t n;
 	
 	// creating the paging structures
@@ -253,22 +253,24 @@ void mem_init()
         printf("\nKernel page directory level 1: %p", ((uint64_t)pml4e_table - (uint64_t)&kernmem));
         printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
         memset((uint64_t *)pml4e_table, 0, (sizeof(pml4e)));
-
+	
+	// initialize the physical pages and free list
 	page_init();
 	
 	// map the kernel space
 	boot_map_region(pml4e_table, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
+	
 	// map the BIOS/Video memory region	
 	//boot_map_region(kern_pgdir, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
 	
-	lcr3(PADDR(pml4e_table));
+	lcr3(PTE_ADDR(PADDR(pml4e_table)));
 	
 	// entry.S set the really important flags in cr0 (including enabling
         // paging).  Here we configure the rest of the flags that we care about.
-        cr0 = rcr0();
-        cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_MP;
-        cr0 &= ~(CR0_TS|CR0_EM);
-        lcr0(cr0);
+        //cr0 = rcr0();
+        //cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_MP;
+        //cr0 &= ~(CR0_TS|CR0_EM);
+        //lcr0(cr0);
 	
 	//TODO: write code to check for installed pages
 }

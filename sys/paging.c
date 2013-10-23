@@ -41,7 +41,7 @@ void map_physical_address(uint32_t* modulep, uint64_t physfree_limit)
 		
 	physfree = physfree_limit;
 	printf("%p %p %p\n", physfree, &physbase, &kernmem);
-
+	
 	// The physical pages are mapped from physfree - limit.
 	uint64_t memseg = (MEM_LIMIT - 0x0);
 	nframes = (memseg/0x1000);
@@ -256,14 +256,16 @@ void mem_init()
 	
 	// initialize the physical pages and free list
 	page_init();
-	
+
+		
 	// map the kernel space
-	boot_map_region(pml4e_table, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
+	boot_map_region(pml4e_table, ((uint64_t)&kernmem), ((uint64_t)physfree - (uint64_t)&physbase), (uint64_t)&physbase, PTE_W);
 	
 	// map the BIOS/Video memory region	
 	//boot_map_region(kern_pgdir, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
 	
-	lcr3(PTE_ADDR(PADDR(pml4e_table)));
+	printf("Directory Add: %p", &kernmem);	
+	lcr3(0x221000);
 	
 	// entry.S set the really important flags in cr0 (including enabling
         // paging).  Here we configure the rest of the flags that we care about.

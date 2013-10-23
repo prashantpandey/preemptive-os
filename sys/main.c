@@ -24,7 +24,8 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 			printf("Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
 		}
 	}
-	*/	
+	*/
+	printf("\nkernmem: \n", &kernmem);	
 	map_physical_address(modulep, (uint64_t)physfree);
 	// kernel starts here
 	while(1);

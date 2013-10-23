@@ -60,11 +60,11 @@ page *pages;
 */
 #define PADDR(kva) _paddr(kva)
 
-static inline uint64_t _paddr(void *kva)
+static inline void* _paddr(uint64_t kva)
 {
 	if ((uint64_t)kva < (uint64_t)&kernmem)
 		printf("PADDR called with invalid kva %p", kva);
-	return ((uint64_t)kva - (uint64_t)&kernmem);
+	return (void*)(kva - (uint64_t)&kernmem);
 }
 
 /* This macro takes a physical address and returns the corresponding kernel

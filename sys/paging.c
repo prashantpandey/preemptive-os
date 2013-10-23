@@ -102,7 +102,9 @@ void page_init()
 		}
 	}
 	
-	for(i = 0; page_free_list != NULL; page_free_list = (page*)page_free_list->pp_link, i++) {}
+	//printf("\npage_free_list: %p", page_free_list);
+        page *temp = page_free_list;	
+	for(i = 0; temp != NULL; temp = (page*)temp->pp_link, i++) {}
 	printf("\nLength of Free List: %d", i); 
 }
 
@@ -116,7 +118,7 @@ page* page_alloc(int alloc_flags)
 	page_free_list = page_free_list->pp_link;
 
 	if (alloc_flags & ALLOC_ZERO)
-		memset(page2kva(pp), 0, PGSIZE);
+		memset(PADDR((uint64_t)pp), 0, PGSIZE);
 	return pp;
 }
 
@@ -145,24 +147,26 @@ void page_decref(page* pp)
 /* PDE walk */
 pte* pde_walk(pde* pde_t, const void* va, int create)
 {
-        pdpe* pde_e;
-        pde* pte_t;
+        pde* pde_e;
+        pte* pte_t;
         page* pp;
 
         pde_e = &pde_t[PDEX(va)];
+	*pde_e = 0x0;
+	//printf("\npde index: %p", PDEX(va));
         if(*pde_e & PTE_P)
         {
-                pte_t = (KADDR(PTE_ADDR(*pde_e)));
+                pte_t = (PADDR(PTE_ADDR(*pde_e)));
         }
         else
         {
                 if(!create ||
                    !(pp = page_alloc(ALLOC_ZERO)) ||
-                   !(pte_t = (pte*)page2kva(pp)))
+                   !(pte_t = (pte*)pp))
                         return NULL;
 
                 pp->pp_ref++;
-                *pde_e = PADDR(pte_t) | PTE_P | PTE_W | PTE_U;
+                *pde_e = (uint64_t)PADDR((uint64_t)pte_t) | PTE_P | PTE_W | PTE_U;
         }
 
         return &pte_t[PTEX(va)];
@@ -176,19 +180,20 @@ pte* pdpe_walk(pdpe* pdpe_t, const void* va, int create)
         page* pp;
 
         pdpe_e = &pdpe_t[PDPEX(va)];
+	//printf("\npdpe index: %p", PDPEX(va));
         if(*pdpe_e & PTE_P)
         {
-                pde_t = (KADDR(PTE_ADDR(*pdpe_e)));
+                pde_t = (PADDR(PTE_ADDR(*pdpe_e)));
         }
         else
         {
                 if(!create ||
                    !(pp = page_alloc(ALLOC_ZERO)) ||
-                   !(pde_t = (pde*)page2kva(pp)))
+                   !(pde_t = (pde*)pp))
                         return NULL;
 
                 pp->pp_ref++;
-                *pdpe_e = PADDR(pde_t) | PTE_P | PTE_W | PTE_U;
+                *pdpe_e = (uint64_t)PADDR((uint64_t)pde_t) | PTE_P | PTE_W | PTE_U;
         }
 
         return pde_walk(pde_t, va, create);
@@ -202,19 +207,20 @@ pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create)
 	page* pp;
 
 	pml4e_e = &pml4e_t[PML4EX(va)];
+	//printf("\npml4e index: %p, page_free_list: %p", PML4EX(va), page_free_list);
 	if(*pml4e_e & PTE_P) 
 	{
-		pdpe_t = (KADDR(PTE_ADDR(*pml4e_e)));
+		pdpe_t = (PADDR(PTE_ADDR(*pml4e_e)));
 	}
 	else
 	{
-		if(!create || 
+		if(!create ||
                    !(pp = page_alloc(ALLOC_ZERO)) ||
-                   !(pdpe_t = (pdpe*)page2kva(pp))) 
+                   !(pdpe_t = (pdpe*)pp))
                         return NULL;
                     
                 pp->pp_ref++;
-                *pml4e_e = PADDR(pdpe_t) | PTE_P | PTE_W | PTE_U;
+                *pml4e_e = (uint64_t)PADDR((uint64_t)pdpe_t) | PTE_P | PTE_W | PTE_U;
         }
 
         return pdpe_walk(pdpe_t, va, create);	
@@ -256,7 +262,7 @@ void mem_init()
 	
 	// initialize the physical pages and free list
 	page_init();
-
+	printf("After page init(page_free_list): %p", page_free_list);
 		
 	// map the kernel space
 	boot_map_region(pml4e_table, ((uint64_t)&kernmem), ((uint64_t)physfree - (uint64_t)&physbase), (uint64_t)&physbase, PTE_W);
@@ -264,8 +270,8 @@ void mem_init()
 	// map the BIOS/Video memory region	
 	//boot_map_region(kern_pgdir, ((uint64_t)&kernmem + (uint64_t)&physbase), (physfree - (((uint64_t)&kernmem + (uint64_t)&physbase))), 0x0, PTE_W);
 	
-	printf("Directory Add: %p", &kernmem);	
-	lcr3(0x221000);
+	//printf("\nDirectory Add: %d", pml4e_table[0x1ff]);	
+	//lcr3((uint64_t)pml4e_table);
 	
 	// entry.S set the really important flags in cr0 (including enabling
         // paging).  Here we configure the rest of the flags that we care about.

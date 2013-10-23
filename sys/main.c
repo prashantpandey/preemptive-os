@@ -25,8 +25,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 		}
 	}
 	*/
-	printf("\nkernmem: \n", &kernmem);	
-	map_physical_address(modulep, (uint64_t)physfree);
+	map_physical_address(modulep, physbase, physfree);
 	// kernel starts here
 	while(1);
 }

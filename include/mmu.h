@@ -9,6 +9,8 @@
 // \-----------------------------------  PGNUM(va) ---------------------------------------------/
 
 
+#define PPN(va)			(((uint64_t)(va) >> PGSHIFT)
+
 #define PGSIZE                	4096                // bytes mapped by a page
 #define PGSHIFT                	12                // log2(PGSIZE)
 
@@ -24,13 +26,17 @@
 #define PDPEX(la)               ((((uint64_t) (la)) >> PDPESHIFT) & 0x1FF)
 
 // PML4E Index
-#define PML4EX(la)               ((((uint64_t) (la)) >> PML4ESHIFT) & 0x1FF)
+#define PML4EX(la)              ((((uint64_t) (la)) >> PML4ESHIFT) & 0x1FF)
+
+#define VPD(la)         	(((uint64_t) (la)) >> PDESHIFT)                // used to index into vpd[]
+#define VPDPE(la)  	 	(((uint64_t) (la)) >> PDPESHIFT)
+#define VPML4E(la)  		(((uint64_t) (la)) >> PML4ESHIFT)
 
 // offset in page
 #define PGOFF(la)        	(((uint64_t) (la)) & 0xFFF)
 
 // Address in page table or page directory entry
-#define PTE_ADDR(pte)        ((uint64_t) (pte) & ~0xFFF)
+#define PTE_ADDR(pte)   	((uint64_t) (pte) & ~0xFFF)
 
 #define PML4ESHIFT		39
 #define PDPESHIFT		30
@@ -39,7 +45,6 @@
 
 // Page directory and page table constants.
 #define NUMBER_ENTRIES        	512                // page table entries per page table
-
 
 // Page table/directory entry flags.
 #define PTE_P                	0x001        // Present

@@ -7,7 +7,7 @@
 void outb( unsigned short port, unsigned char val );
 unsigned char inb( unsigned short port );
 void memcpy(void* dest, void *src, uint32_t len);
-void memset(void *dest, uint32_t val, uint32_t len);
+void memset(void *dest, uint8_t val, uint32_t len);
 
 static __inline void lcr0(uint64_t val) __attribute__((always_inline));
 static __inline uint64_t rcr0(void) __attribute__((always_inline));

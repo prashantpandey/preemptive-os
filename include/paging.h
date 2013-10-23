@@ -11,6 +11,10 @@ extern char kernmem;
 
 #define ALLOC_ZERO	1<<0
 #define MEM_LIMIT 	0x7ffe000
+#define KERNBASE	0xffffffff80000000
+
+#define IOPHYSMEM       0x09fc00
+#define EXTPHYSMEM      0x100000
 
 #define PAGE_ROUNDOFF(physaddress, page_size) _page_roundoff(physaddress, page_size)
 
@@ -38,10 +42,10 @@ typedef uint64_t pde;
 typedef uint64_t pte;
 
 // Declaration of the table structures
-pml4e *pml4e_table;
-pdpe *pdpe_table;
-pde *pde_table;
-pte *pte_table;
+//pml4e *pml4e_table;
+//pdpe *pdpe_table;
+//pde *pde_table;
+//pte *pte_table;
 
 struct PAGE 
 {
@@ -53,6 +57,7 @@ typedef struct PAGE page;
 //Declaration of page free list
 page *pages;
 
+
 /* This macro takes a kernel virtual address -- an address that points above
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
  * and returns the corresponding physical address. It panics if you pass it a
@@ -62,9 +67,9 @@ page *pages;
 
 static inline void* _paddr(uint64_t kva)
 {
-	if ((uint64_t)kva < (uint64_t)&kernmem)
+	if ((uint64_t)kva < (uint64_t)KERNBASE)
 		printf("PADDR called with invalid kva %p", kva);
-	return (void*)(kva - (uint64_t)&kernmem);
+	return (void*)(kva - (uint64_t)KERNBASE);
 }
 
 /* This macro takes a physical address and returns the corresponding kernel
@@ -76,15 +81,22 @@ static inline void* _kaddr(uint64_t pa)
 {
 	if (PGNUM(pa) >= nframes)
 		printf("KADDR called with invalid pa %p", pa);
-	return (void*)(pa + (uint64_t)&kernmem);
+	return (void*)(pa + (uint64_t)KERNBASE);
 }
 
+
 #define PAGE_OFF(la) (((uint64_t) (la)) & 0xFFF)
+
+static inline uint32_t
+page2ppn(page *pp)
+{
+        return pp - pages;
+}
 
 // page to memory utility functions
 static inline uint64_t page2pa(page *pp)
 {
-        return ((uint64_t)pp - (uint64_t)pages) << PGSHIFT;
+        return (page2ppn(pp)) << PGSHIFT;
 }
 
 static inline page* pa2page(uint64_t pa)
@@ -124,6 +136,6 @@ pte *get_page(uint64_t address, int make, pml4e *dir);
 **/
 void page_fault();
 
-void map_physical_address(uint32_t* modulep, uint64_t physfree);
+void map_physical_address(uint32_t* modulep, void* physbase, void* physfree);
 
 #endif

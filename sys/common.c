@@ -24,10 +24,8 @@ void memcpy(void *dest, void *src, uint32_t len)
         for(; len != 0; len--) *dp++ = *sp++;
 }
 
-// Write len copies of val into dest.
-void memset(void *dest, uint32_t val, uint32_t len)
+void memset(void *dest, uint8_t val, uint32_t len)
 {
-        uint16_t *temp = (uint16_t *)dest;
-        for ( ; len != 0; len--) *temp++ = val;
+    uint8_t *temp = (uint8_t *)dest;
+    for ( ; len != 0; len--) *temp++ = val;
 }
-

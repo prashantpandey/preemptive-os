@@ -314,7 +314,7 @@ void mem_init()
 	//uint32_t n;
 	
 	// creating the paging structures
-        pml4e* pml4e_table = boot_alloc(sizeof(PGSIZE));
+        pml4e* pml4e_table = boot_alloc(PGSIZE);
         memset(pml4e_table, 0, PGSIZE);
 		
 	uint64_t boot_cr3 = (uint64_t)PADDR((uint64_t)pml4e_table);
@@ -331,7 +331,7 @@ void mem_init()
 	
 	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);	
 	//lcr3(PADDR((uint64_t)pml4e_table));
-	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
+	//asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
 	//printf("Hello Pagination done.. Kernel area mapped..!!!");	
 
 	// entry.S set the really important flags in cr0 (including enabling

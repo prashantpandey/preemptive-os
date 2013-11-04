@@ -191,8 +191,8 @@ pte* pde_walk(pde* pde_t, const void* va, int create)
                         if((pp = page_alloc(ALLOC_ZERO))!=NULL) {
                         	pde_t[PDEX(va)] = (pde)page2pa(pp) | PTE_P | PTE_W | PTE_U;
 
-                        if(PDEX(va) >= PDEX(KERNBASE))
-                             	pde_t[PDEX(va)] = (pde)page2pa(pp) | PTE_P | PTE_W ;	//| PTE_U; /* Fix : during Lab 3 for Ex 5*/
+                        	if(PDEX(va) >= PDEX(KERNBASE))
+                             		pde_t[PDEX(va)] = (pde)page2pa(pp) | PTE_P | PTE_W ;
                         	pp->pp_ref++;
                         }
                         else {
@@ -202,7 +202,7 @@ pte* pde_walk(pde* pde_t, const void* va, int create)
                 }
           }
 
-       pte_ptr = KADDR(PTE_ADDR(*(pde_t + PDEX(va))));
+       pte_ptr = KADDR(PTE_ADDR(pde_t[PDEX(va)]));
 
        pte_ptr = &pte_ptr[PTEX(va)];
 
@@ -222,7 +222,7 @@ pte* pdpe_walk(pdpe* pdpe_t, const void* va, int create)
                         return NULL;
                 case 1 :
                         if((pp = page_alloc(ALLOC_ZERO)) != NULL) {
-                          *(pdpe_t + PDPEX(va)) = (pdpe)page2pa(pp) | PTE_P | PTE_U | PTE_W;
+                          pdpe_t[PDPEX(va)] = (pdpe)page2pa(pp) | PTE_P | PTE_U | PTE_W;
                            pp->pp_ref++;
                         }
                         else {
@@ -260,7 +260,7 @@ pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create)
                         return NULL;
                 case 1 :
                         if((pp = page_alloc(ALLOC_ZERO)) != NULL) {
-                            *(pml4e_t + PML4EX(va)) = (pml4e)(page2pa(pp)) | PTE_P | PTE_U | PTE_W;
+                            pml4e_t[PML4EX(va)] = (pml4e)(page2pa(pp)) | PTE_P | PTE_U | PTE_W;
                             pp->pp_ref++;
                         }
                         else {
@@ -270,12 +270,12 @@ pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create)
 
                 default :
                         break;
-                }
-          }
+     		}
+        }
 
         pdpe_ptr = KADDR(PTE_ADDR(pml4e_t[PML4EX(va)]));
 
-        if((pte_ptr = pdpe_walk(pdpe_ptr, va, create))!=NULL)
+        if((pte_ptr = pdpe_walk(pdpe_ptr, va, create)) != NULL)
             return pte_ptr;
         else {
              if(pp != NULL) {
@@ -289,12 +289,20 @@ pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create)
 /* To create the mapping from VA space to PA space for a given size */
 void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, int perm)
 {
-	pte* pte;
-	
+	pte* pte;	
 	uint64_t va = PAGE_ROUNDOFF(la, PGSIZE);
-	uint32_t number_pages = (size / PGSIZE);
-	int i = 0;
-	for(i = 0; i < number_pages; i += PGSIZE)
+	//uint32_t number_pages = (size/PGSIZE);
+	//int i = 0;
+
+	pte = pml4e_walk(pml4e_t, (void *)(va + 0), 1);
+                if(!pte) {
+                        printf(" Null Boot map segment\n");
+                        return;
+                }
+                *pte = pa + 0;
+                *pte = *pte | (perm | PTE_P);	
+/*
+	for(i = 0; i < PAGE_ROUNDOFF(size, PGSIZE); i += PGSIZE)
 	{
 		pte = pml4e_walk(pml4e_t, (void *)(va+i), 1);
 		if(!pte) {
@@ -304,7 +312,7 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 		*pte = pa + i;
 		*pte = *pte | (perm | PTE_P);
 	}
-
+*/
 }
 
 /* Sets up the Kernel page dir and initialize paging. */
@@ -314,7 +322,7 @@ void mem_init()
 	//uint32_t n;
 	
 	// creating the paging structures
-        pml4e* pml4e_table = boot_alloc(sizeof(PGSIZE));
+        pml4e* pml4e_table = boot_alloc(PGSIZE);
         memset(pml4e_table, 0, PGSIZE);
 		
 	uint64_t boot_cr3 = (uint64_t)PADDR((uint64_t)pml4e_table);
@@ -329,9 +337,10 @@ void mem_init()
 	// map the BIOS/Video memory region	
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P);
 	
-	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);	
+	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
+		
 	//lcr3(PADDR((uint64_t)pml4e_table));
-	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
+	//asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
 	//printf("Hello Pagination done.. Kernel area mapped..!!!");	
 
 	// entry.S set the really important flags in cr0 (including enabling

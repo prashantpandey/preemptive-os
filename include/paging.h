@@ -20,7 +20,9 @@ extern char kernmem;
 
 static inline uint64_t _page_roundoff(uint64_t physaddress, uint32_t page_size) 
 {
-	physaddress += (page_size - physaddress%page_size);
+	if(physaddress%page_size != 0) {
+		physaddress += (page_size - physaddress%page_size);
+	}
 	return physaddress;
 }
 
@@ -50,7 +52,7 @@ typedef uint64_t pte;
 struct PAGE 
 {
 	struct PAGE *pp_link;
-	uint32_t pp_ref;
+	uint16_t pp_ref;
 }__attribute__((packed));
 typedef struct PAGE page;
 

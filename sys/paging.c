@@ -80,14 +80,14 @@ static void * boot_alloc(uint32_t n)
         {
         	if(n == 0) {
                 	result = nextfree;
-           	}
+		}
            	if(n > 0)
                	{
                 	nextfree = PAGE_ROUNDOFF(nextfree, PGSIZE);
                 	result = nextfree;
                 	nextfree += n;
-               	 	PADDR(nextfree);
-              	}
+               	 	nextfree = PAGE_ROUNDOFF(nextfree, PGSIZE);
+		}
         }
 	return (void *)result;			
 }
@@ -292,16 +292,16 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 	pte* pte;	
 	uint64_t va = PAGE_ROUNDOFF(la, PGSIZE);
 	//uint32_t number_pages = (size/PGSIZE);
-	//int i = 0;
+	int i = 0;
 
-	pte = pml4e_walk(pml4e_t, (void *)(va + 0), 1);
-                if(!pte) {
-                        printf(" Null Boot map segment\n");
-                        return;
-                }
-                *pte = pa + 0;
-                *pte = *pte | (perm | PTE_P);	
-/*
+//	pte = pml4e_walk(pml4e_t, (void *)(va + 0), 1);
+//                if(!pte) {
+//                        printf(" Null Boot map segment\n");
+//                        return;
+//                }
+//                *pte = pa + 0;
+//                *pte = *pte | (perm | PTE_P);	
+
 	for(i = 0; i < PAGE_ROUNDOFF(size, PGSIZE); i += PGSIZE)
 	{
 		pte = pml4e_walk(pml4e_t, (void *)(va+i), 1);
@@ -312,7 +312,7 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 		*pte = pa + i;
 		*pte = *pte | (perm | PTE_P);
 	}
-*/
+
 }
 
 /* Sets up the Kernel page dir and initialize paging. */
@@ -340,7 +340,7 @@ void mem_init()
 	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		
 	//lcr3(PADDR((uint64_t)pml4e_table));
-	//asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
+	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
 	//printf("Hello Pagination done.. Kernel area mapped..!!!");	
 
 	// entry.S set the really important flags in cr0 (including enabling

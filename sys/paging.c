@@ -341,7 +341,7 @@ void mem_init()
 		
 	//lcr3(PADDR((uint64_t)pml4e_table));
 	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
-	printf_string("Hello Pagination done.", 23, 40);	
+	printf("Hello Pagination done.");	
 
 	// entry.S set the really important flags in cr0 (including enabling
         // paging).  Here we configure the rest of the flags that we care about.

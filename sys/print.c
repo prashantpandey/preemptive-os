@@ -360,7 +360,7 @@ int printf(const char *fmt, ...)
         int str_len = 0;
         int cnt = 0;
         char str[1024];
-        char *str_temp = 0;
+        char str_temp[1024];
 
         va_start(args, fmt);
 
@@ -388,17 +388,17 @@ int printf(const char *fmt, ...)
                                 len = strlen(str_temp);
                                 while(len > 0)
 				{
-                                        str[cnt++] = *str_temp++;
+                                        str[cnt++] = str_temp[len];
                                         len--;
                                 }
                                 fmt++;
                                 continue;
                         case 's':
-                                str_temp = va_arg(args, char *);
+                                str_temp = va_arg(args, char [1024]);
                                 len = strlen(str_temp);
                                 while(len > 0)
                                 {
-                                        str[cnt++] = *str_temp++;
+                                        str[cnt++] = str_temp[len];
                                         len--;
                                 }
                                 fmt++;
@@ -408,7 +408,7 @@ int printf(const char *fmt, ...)
                                 len = strlen(str_temp);
                                 while(len > 0)
                                 {
-                                        str[cnt++] = *str_temp++;
+                                        str[cnt++] = str_temp[len];
                                         len--;
                                 }
                                 fmt++;
@@ -418,7 +418,7 @@ int printf(const char *fmt, ...)
                                 len = strlen(str_temp);
                                 while(len > 0)
                                 {
-                                        str[cnt++] = *str_temp++;
+                                        str[cnt++] = str_temp[len];
                                         len--;
                                 }
                                 fmt++;

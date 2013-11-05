@@ -3,8 +3,11 @@ The file containing the functions for printf
 */
 #include <stdio.h>
 #include <stdarg.h>
+#include <paging.h>
+
 #define WHITE_TXT 0x07 // white on black text
-#define VIDMEM 0xb8000  // start address of the video memory
+#define VIDMEM (0xb8000 + KERNBASE)  // start address of the video memory
+
 
 // global declaration of cursor position
 int cursor_p_x = 0;
@@ -59,7 +62,7 @@ void char_array_reverse(char array[], int cnt, char *final)
 // Will clear the rest of the line from the given cursor position
 void clear_line(unsigned int line, unsigned int column) 
 {
-	char *vidmem = (char *) 0xb8000;
+	char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
 	int boundary = 0;
         i = ((line*80) + column)*2;     // y-axis * width_of_screen + x-axis (offset)   
@@ -79,7 +82,7 @@ void start_scroller()
 {
 	int i = 0;
 	int j = 0;
-        char *vidmem = (char *) 0xb8000;
+        char *vidmem = (char *) VIDMEM;
 	int pos1 = 0;
 	int pos2 = 0;
 
@@ -104,7 +107,7 @@ void start_scroller()
 
 // Will spit out the character at the given line number
 unsigned int printf_char(char message, unsigned int line, unsigned int column) {
-        char *vidmem = (char *) 0xb8000;
+        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
         int initial_p = 0;
 
@@ -122,7 +125,7 @@ unsigned int printf_char(char message, unsigned int line, unsigned int column) {
 // Will spit out the string message at the given line number
 unsigned int printf_string(char *message, unsigned int line, unsigned int column) // the message and then the line #
 {
-        char *vidmem = (char *) 0xb8000;
+        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
         int initial_p = 0;
 
@@ -155,7 +158,7 @@ unsigned int printf_string(char *message, unsigned int line, unsigned int column
 // will spit out the integer at the given line number
 unsigned int printf_int(int message, unsigned int line, unsigned int column) // the message and the line #
 {
-        char *vidmem = (char *) 0xb8000;
+        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
 
         int digits[12];
@@ -189,7 +192,7 @@ unsigned int printf_int(int message, unsigned int line, unsigned int column) // 
 // will spit out the integer at the given line number
 unsigned int printf_integer(int message, unsigned int line, unsigned int column, char* str) // the message and the line #
 {
-//        char *vidmem = (char *) 0xb8000;
+//        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
 
         int digits[12];
@@ -229,7 +232,7 @@ unsigned int printf_integer(int message, unsigned int line, unsigned int column,
 // will spit out the hexadecimal at the given line number
 unsigned int printf_hexadecimal(unsigned long message, unsigned int line, unsigned int column, char* str) // the message and the line #
 {
-//        char *vidmem = (char *) 0xb8000;
+//        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
 
         int cnt = 0;
@@ -300,7 +303,7 @@ void show_cursor(signed int memory_used)
 // Will clear the screen with while on black text
 void clear_screen() // clear the entire text screen
 {
-        char *vidmem = (char *) 0xb8000;
+        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
         while(i < (80*25*2))
         {
@@ -316,7 +319,7 @@ void clear_screen() // clear the entire text screen
 // Will handle the backspace key
 void handle_backspace()
 {
-	char *vidmem = (char *) 0xb8000;	
+	char *vidmem = (char *) VIDMEM;	
 	unsigned int i = ((cursor_p_y * 80) + cursor_p_x) * 2;
 		
 	vidmem[i++] = ' ';
@@ -330,7 +333,7 @@ void handle_backspace()
 // Will handle the enter'\n' character
 void handle_enter() 
 {
-	char *vidmem = (char *) 0xb8000;
+	char *vidmem = (char *) VIDMEM;
         unsigned int i = ((cursor_p_y * 80) + cursor_p_x) * 2;
 
         vidmem[i++] = ' ';

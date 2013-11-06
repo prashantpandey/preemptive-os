@@ -361,6 +361,7 @@ int printf(const char *fmt, ...)
         int cnt = 0;
         char str[1024];
         char str_temp[1024];
+	int i = 0;
 
         va_start(args, fmt);
 
@@ -384,42 +385,42 @@ int printf(const char *fmt, ...)
                                 fmt++;
                                 continue;
                         case 'd':
+				i = 0;
                                 printf_integer(va_arg(args, int), cursor_p_y, cursor_p_x, str_temp);
                                 len = strlen(str_temp);
-                                while(len > 0)
+                                while(i < len)
 				{
-                                        str[cnt++] = str_temp[len];
-                                        len--;
+                                        str[cnt++] = str_temp[i++];
                                 }
                                 fmt++;
                                 continue;
                         case 's':
+				i = 0;
                                 str_temp = va_arg(args, char [1024]);
                                 len = strlen(str_temp);
-                                while(len > 0)
+                                while(i < len)
                                 {
-                                        str[cnt++] = str_temp[len];
-                                        len--;
+                                        str[cnt++] = str_temp[i++];
                                 }
                                 fmt++;
                                 continue;
                         case 'x':
+				i = 0;
                                 printf_hexadecimal(va_arg(args, int), cursor_p_y, cursor_p_x, str_temp);
                                 len = strlen(str_temp);
-                                while(len > 0)
+                                while(i < len)
                                 {
-                                        str[cnt++] = str_temp[len];
-                                        len--;
+                                        str[cnt++] = str_temp[i++];
                                 }
                                 fmt++;
                                 continue;
                         case 'p':
+				i = 0;
                                 printf_hexadecimal(va_arg(args, unsigned long), cursor_p_y, cursor_p_x, str_temp);
                                 len = strlen(str_temp);
-                                while(len > 0)
+                                while(i < len)
                                 {
-                                        str[cnt++] = str_temp[len];
-                                        len--;
+                                        str[cnt++] = str_temp[i++];
                                 }
                                 fmt++;
                                 continue;

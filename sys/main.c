@@ -54,13 +54,13 @@ void boot(void)
 	setup_tss();
 
 // Will initialize the IDT
-        init_idt();
+//        init_idt();
 
 // Will initialize the PIC and remap the interrupt number 0-15 to 32-47
-        pic_remap(0x20, 0x28);
+//        pic_remap(0x20, 0x28);
 
 // Will initialize the timer interrupt
-        init_timer(100);
+//        init_timer(100);
 
 // code snippet to invoke an interrupt based upon arg number which is the interrupt number
 //      int arg = 0;

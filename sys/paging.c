@@ -310,9 +310,6 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 /* Sets up the Kernel page dir and initialize paging. */
 void mem_init() 
 {
-	//uint64_t cr0;
-	//uint32_t n;
-	
 	// creating the paging structures
         pml4e* pml4e_table = boot_alloc(PGSIZE);
         memset(pml4e_table, 0, PGSIZE);
@@ -331,18 +328,9 @@ void mem_init()
 	
 	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		
-	//lcr3(PADDR((uint64_t)pml4e_table));
-	//asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
-//	int success = 1;
+	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
+	
 	printf("Hello Pagination done.%p", boot_cr3);	
 
-	// entry.S set the really important flags in cr0 (including enabling
-        // paging).  Here we configure the rest of the flags that we care about.
-        //cr0 = rcr0();
-        //cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_MP;
-        //cr0 &= ~(CR0_TS|CR0_EM);
-        //lcr0(cr0);
-	
-	//TODO: write code to check for installed pages
 }
 

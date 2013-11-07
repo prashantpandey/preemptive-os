@@ -294,14 +294,6 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 	//uint32_t number_pages = (size/PGSIZE);
 	int i = 0;
 
-//	pte = pml4e_walk(pml4e_t, (void *)(va + 0), 1);
-//                if(!pte) {
-//                        printf(" Null Boot map segment\n");
-//                        return;
-//                }
-//                *pte = pa + 0;
-//                *pte = *pte | (perm | PTE_P);	
-
 	for(i = 0; i < PAGE_ROUNDOFF(size, PGSIZE); i += PGSIZE)
 	{
 		pte = pml4e_walk(pml4e_t, (void *)(va+i), 1);

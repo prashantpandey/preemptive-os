@@ -155,6 +155,42 @@ page* page_alloc(int alloc_flags)
 	return pp;
 }
 
+uint64_t kmalloc(uint32_t size)
+{
+	uint32_t temp_size = size;
+	int pages_required = 0;
+	page* pp = NULL;
+	uint64_t start_address = NULL;
+	int i = 0;
+	// Calculating the no of pages required corresponding to the size
+	if (temp_size < PGSIZE)
+		pages_required = 1;
+	else
+		{
+		pages_required = temp_size/PGSIZE;
+		temp_size -= (pages_required*PGSIZE);
+		if (temp_size >0)
+			pages_required++;
+		}
+	// Getting the pages allocated	
+        if (!page_free_list)
+                return NULL;
+        
+	pp = page_free_list;
+	start_address =(uint64_t) pp;
+
+	for(i = 0; i< pages_required; i++)
+	{	
+		pp->pp_ref++;
+		memset(page2kva((void*)pp), 0, PGSIZE);
+		pp = pp->pp_link;
+	}
+	page_free_list = pp;
+	printf("Starting address for %d pages is %x ", pages_required, start_address); 
+	return start_address;
+}
+
+
 // Return a page to the free list.
 // (This function should only be called when pp->pp_ref reaches 0.)
 //
@@ -318,17 +354,30 @@ void mem_init()
 
 	// initialize the physical pages and free list
 	page_init();
+	//printf("After page init(page_free_list): %p", page_free_list);
 		
 	// map the kernel space
-	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, (((uint64_t)lphysfree - (uint64_t)lphysbase)), (uint64_t)lphysbase, PTE_W | PTE_P);
+	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, ((uint64_t)lphysfree - (uint64_t)lphysbase), (uint64_t)lphysbase, PTE_W | PTE_P);
 		
 	// map the BIOS/Video memory region	
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P);
 	
 	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		
+<<<<<<< HEAD
+	//lcr3(PADDR((uint64_t)pml4e_table));
+	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
+//	int success = 1;
+	printf("Hello Pagination done.%p", boot_cr3);	
+
+	// kmalloc call
+	uint64_t new_address = kmalloc(12);
+	printf("The memory assigned is from address %x",new_address);
+=======
 	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
 	
 	printf("Hello Pagination done.%p", boot_cr3);	
+
+>>>>>>> 1c017079ec0ff15356fef6be06044827d96946df
 }
 

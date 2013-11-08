@@ -312,7 +312,7 @@ void clear_screen() // clear the entire text screen
                 vidmem[i] = WHITE_TXT;
                 i++;
         }
-	printf("%s", "\t\t\tWelcome to SBUnix....!!\n");
+	//printf("%s", "\t\t\tWelcome to SBUnix....!!\n");
 	show_cursor(0);
 }
 

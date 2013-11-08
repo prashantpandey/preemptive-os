@@ -59,8 +59,13 @@ void lidt() {
 void handler_print_isr() {
 
 	unsigned long isr_num = 0;
+	unsigned long page_fault_add = 0;
 	__asm__ __volatile__ ("movq %%rax, %0" : "=r"(isr_num));
 	printf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
+	if(isr_num == 14) {
+		__asm__ __volatile__ ("movq %%cr2, %0" : "=r"(page_fault_add));
+		printf("Page fault occured at this address: %p", page_fault_add);
+	}
 	
 	while(1);
 }
@@ -75,6 +80,37 @@ void handler_interrupt_isr0()
 
 	 __asm__(".global x86_64_isr_vector0 \n"\
                         "x86_64_isr_vector0:\n" \
+                        "    pushq %rax;" \
+                        "    pushq %rcx;" \
+                        "    pushq %rdx;" \
+                        "    pushq %rsi;" \
+                        "    pushq %rdi;" \
+                        "    pushq %r8;" \
+                        "    pushq %r9;" \
+                        "    pushq %r10;" \
+                        "    pushq %r11;" \
+                        "    call handler_print_isr;"\
+                        "    popq %r11;"                 \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rax;" \
+          "iretq;");
+}
+
+void handler_interrupt_isr14()
+{
+        __asm__ (
+              "cli;"
+              "movq $14, %rax"
+              );
+
+         __asm__(".global x86_64_isr_vector14 \n"\
+                        "x86_64_isr_vector14:\n" \
                         "    pushq %rax;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
@@ -193,6 +229,7 @@ void init_idt()
 	
 	// Will setup the particular ISR entry in the IDT
         idt_set_gate(0,(uint64_t) &handler_interrupt_isr0, 0x08, 0x8E);
+        idt_set_gate(0,(uint64_t) &handler_interrupt_isr14, 0x08, 0x8E);
 	
 	// Will setup the respective IRQ entries in the IDT for PIT and Keyboard interrupt
         idt_set_gate(32,(uint64_t) &irq0, 0x08, 0x8E);

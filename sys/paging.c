@@ -318,10 +318,9 @@ void mem_init()
 
 	// initialize the physical pages and free list
 	page_init();
-	//printf("After page init(page_free_list): %p", page_free_list);
 		
 	// map the kernel space
-	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, ((uint64_t)lphysfree - (uint64_t)lphysbase), (uint64_t)lphysbase, PTE_W | PTE_P);
+	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, (((uint64_t)lphysfree - (uint64_t)lphysbase)), (uint64_t)lphysbase, PTE_W | PTE_P);
 		
 	// map the BIOS/Video memory region	
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P);
@@ -331,6 +330,5 @@ void mem_init()
 	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
 	
 	printf("Hello Pagination done.%p", boot_cr3);	
-
 }
 

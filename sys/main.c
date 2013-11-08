@@ -63,8 +63,8 @@ void boot(void)
 //        init_timer(100);
 
 // code snippet to invoke an interrupt based upon arg number which is the interrupt number
-//      int arg = 0;
-//        __asm__("int %0\n" : : "N"((arg)) : "cc", "memory");
+      //int arg = 0;
+       // __asm__("int %0\n" : : "N"((arg)) : "cc", "memory");
 
        	clear_screen();
        	start(

@@ -1,4 +1,3 @@
-/*File containing functions to initialize IDT and registering and handling ISRs and IRQs  */
 #include <stdarg.h>
 #include <defs.h>
 #include <stdio.h>
@@ -31,7 +30,7 @@ typedef struct idt_entry_struct idt_entry_t;
 struct idt_ptr_struct
 {
   	uint16_t limit;
-   	uint32_t base;                // The address of the first element in our idt_entry_t array.
+   	uint64_t base;                // The address of the first element in our idt_entry_t array.
 } __attribute__((packed));
 typedef struct idt_ptr_struct idt_ptr_t;
 
@@ -240,4 +239,3 @@ void init_idt()
 	// To let hardware interrupts happen
 	__asm__ ("sti");
 }
-

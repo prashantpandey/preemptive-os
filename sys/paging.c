@@ -364,20 +364,10 @@ void mem_init()
 	
 	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		
-<<<<<<< HEAD
-	//lcr3(PADDR((uint64_t)pml4e_table));
 	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
-//	int success = 1;
 	printf("Hello Pagination done.%p", boot_cr3);	
 
-	// kmalloc call
-	uint64_t new_address = kmalloc(12);
-	printf("The memory assigned is from address %x",new_address);
-=======
-	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
 	
-	printf("Hello Pagination done.%p", boot_cr3);	
 
->>>>>>> 1c017079ec0ff15356fef6be06044827d96946df
 }
 

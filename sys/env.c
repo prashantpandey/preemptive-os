@@ -1,12 +1,12 @@
-#include <inc/x86.h>
+//#include <inc/x86.h>
 #include <include/mmu.h>
-#include <inc/error.h>
-#include <inc/string.h>
-#include <inc/assert.h>
-#include <include/elf.h>
+//#include <inc/error.h>
+//#include <inc/string.h>
+//#include <inc/assert.h>
+#include <include/sys/tarfs.h>
 
 #include <include/env.h>
-#include <kern/pmap.h>
+#include <kern/paging.h>
 #include <kern/trap.h>
 #include <kern/monitor.h>
 #include <kern/macro.h>

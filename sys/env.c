@@ -1,16 +1,16 @@
-nclude <inc/x86.h>
-#include <inc/mmu.h>
+#include <inc/x86.h>
+#include <include/mmu.h>
 #include <inc/error.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-#include <inc/elf.h>
+#include <include/elf.h>
 
-#include <kern/env.h>
+#include <include/env.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/monitor.h>
 #include <kern/macro.h>
-#include <kern/sched.h>
+#include <include/sched.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 
@@ -35,6 +35,8 @@ static struct Env *env_free_list;        // Free environment list
 // definition of gdt specifies the Descriptor Privilege Level (DPL)
 // of that descriptor: 0 for kernel and 3 for user.
 //
+
+/*
 struct Segdesc gdt[2*NCPU + 5] =
 {
         // 0x0 - unused (always faults -- for trapping NULL far pointers)
@@ -63,6 +65,8 @@ struct Segdesc gdt[2*NCPU + 5] =
 struct Pseudodesc gdt_pd = {
         sizeof(gdt) - 1, (unsigned long) gdt
 };
+
+*/
 //
 // Converts an envid to an env pointer.
 // If checkperm is set, the specified environment must be either the
@@ -73,8 +77,8 @@ struct Pseudodesc gdt_pd = {
 // On success, sets *env_store to the environment.
 // On error, sets *env_store to NULL.
 //
-        int
-envid2env(envid_t envid, struct Env **env_store, bool checkperm)
+
+int envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 {
         struct Env *e;
 
@@ -115,8 +119,8 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 // they are in the envs array (i.e., so that the first call to
 // env_alloc() returns envs[0]).
 //
-        void
-env_init(void)
+
+void env_init(void)
 {
         // Set up envs array
         // LAB 3: Your code here.
@@ -137,9 +141,10 @@ env_init(void)
         env_init_percpu();
 }
 
+/*
 // Load GDT and segment descriptors.
-void
-env_init_percpu(void)
+
+void env_init_percpu(void)
 {
 lgdt(&gdt_pd);
 
@@ -158,7 +163,7 @@ asm volatile("pushq %%rbx \n \t movabs $1f,%%rax \n \t pushq %%rax \n\t lretq \n
 // since we don't use it.
 lldt(0);
 }
-
+*/
 //
 // Initialize the kernel virtual memory layout for environment e.
 // Allocate a page map level 4, set e->env_pml4e accordingly,
@@ -169,8 +174,8 @@ lldt(0);
 // Returns 0 on success, < 0 on error. Errors include:
 //        -E_NO_MEM if page directory or table could not be allocated.
 //
-        static int
-env_setup_vm(struct Env *e)
+
+static int env_setup_vm(struct Env *e)
 {
         int i;
         struct Page *p=NULL, *pdpe_env_page=NULL, *pgdir_env_page = NULL;
@@ -245,10 +250,10 @@ env_setup_vm(struct Env *e)
 //        -E_NO_FREE_ENV if all NENVS environments are allocated
 //        -E_NO_MEM on memory exhaustion
 //
-        int
-env_alloc(struct Env **newenv_store, envid_t parent_id)
+
+int env_alloc(struct Env **newenv_store, envid_t parent_id)
 {
-        int32_t generation;
+        uint32_t generation;
         int r;
         struct Env *e;
 
@@ -317,8 +322,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 // Pages should be writable by user and kernel.
 // Panic if any allocation attempt fails.
 //
-        static void
-region_alloc(struct Env *e, void *va, size_t len)
+static void region_alloc(struct Env *e, void *va, size_t len)
 {
         // LAB 3: Your code here.
         // (But only if you need it for load_icode.)
@@ -365,8 +369,8 @@ region_alloc(struct Env *e, void *va, size_t len)
 // load_icode panics if it encounters problems.
 // - How might load_icode fail? What might be wrong with the given input?
 //
-        static void
-load_icode(struct Env *e, uint8_t *binary, size_t size)
+
+static void load_icode(struct Env *e, uint16_t *binary, size_t size)
 {
         // Hints:
         // Load each program segment into virtual memory
@@ -442,8 +446,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 // before running the first user-mode environment.
 // The new env's parent ID is set to 0.
 //
-        void
-env_create(uint8_t *binary, size_t size, enum EnvType type)
+void env_create(uint16_t *binary, size_t size, enum EnvType type)
 {
 
         // If this is the file server (type == ENV_TYPE_FS) give it I/O privileges.
@@ -462,8 +465,7 @@ env_create(uint8_t *binary, size_t size, enum EnvType type)
 //
 // Frees env e and all memory it uses.
 //
-        void
-env_free(struct Env *e)
+void env_free(struct Env *e)
 {
         pte_t *pt;
         uint64_t pdeno, pteno;
@@ -535,8 +537,8 @@ env_free(struct Env *e)
 // If e was the current env, then runs a new environment (and does not return
 // to the caller).
 //
-        void
-env_destroy(struct Env *e)
+
+void env_destroy(struct Env *e)
 {
         // If e is currently running on other CPUs, we change its state to
         // ENV_DYING. A zombie environment will be freed the next time
@@ -561,8 +563,7 @@ env_destroy(struct Env *e)
 //
 // This function does not return.
 //
-        void
-env_pop_tf(struct Trapframe *tf)
+void env_pop_tf(struct Trapframe *tf)
 {
         // Record the CPU we are running on for user-space debugging
         curenv->env_cpunum = cpunum();
@@ -584,8 +585,7 @@ env_pop_tf(struct Trapframe *tf)
 //
 // This function does not return.
 //
-        void
-env_run(struct Env *e)
+void env_run(struct Env *e)
 {
         // Step 1: If this is a context switch (a new environment is running):
         //         1. Set the current environment (if any) back to

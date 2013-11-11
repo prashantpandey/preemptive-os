@@ -1,9 +1,9 @@
-fndef JOS_INC_ENV_H
-#define JOS_INC_ENV_H
+#ifndef _ENV_H
+#define _ENV_H
 
 #include <inc/types.h>
 #include <inc/trap.h>
-#include <inc/memlayout.h>
+#include <include/memlayout.h>
 
 typedef int32_t envid_t;
 extern pml4e_t *boot_pml4e;

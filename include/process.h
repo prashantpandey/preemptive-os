@@ -1,131 +1,14 @@
-#ifndef PROCESS_H
-#define PROCESS_H
+#ifndef _PROCESS_H
+#define _PROCESS_H
 
-#include <inc/types.h>
-#include <inc/trap.h>
-#include <inc/memlayout.h>
-
-typedef uint32_t pid_t;
-
-// An environment ID 'envid_t' has three parts:
-//
-// +1+---------------21-----------------+--------10--------+
-// |0| Uniqueifier | Environment |
-// | | | Index |
-// +------------------------------------+------------------+
-// \--- ENVX(eid) --/
-//
-// The environment index ENVX(eid) equals the environment's offset in the
-// 'envs[]' array. The uniqueifier distinguishes environments that were
-// created at different times, but share the same environment index.
-//
-// All real environments are greater than 0 (so the sign bit is zero).
-// envid_ts less than 0 signify errors. The envid_t == 0 is special, and
-// stands for the current environment.
-
-#define LOG2NENV                10
-#define NENV                        (1 << LOG2NENV)
-#define ENVX(envid)                ((envid) & (NENV - 1))
-
-// Values of env_status in struct Env
-enum {
-        ENV_FREE = 0,
-        ENV_DYING,
-        ENV_RUNNABLE,
-        ENV_RUNNING,
-        ENV_NOT_RUNNABLE
-};
-
-// Special environment types
-enum EnvType {
-        ENV_TYPE_USER = 0,
-        ENV_TYPE_IDLE,
-};
-
-struct thread_struct;
-
-typedef struct task_struct{
-	uint64_t state;  				  	/* -1 unrunnable, 0 runnable, >0 stopped */
-	int prio;
-	struct task_struct *real_parent; 			/* real parent process */
-        struct task_struct *parent; 				/* recipient of SIGCHLD, wait4() reports */
-        struct task_struct *group_leader;       		/* threadgroup leader */
-        void *stack;
-	        uint32_t flags;						 /* per process flags, defined below */
-        uint32_t ptrace;
-        struct mm_struct *mm, *active_mm;
-        pid_t pid;						//Process Id
-        pid_t ppid;						//Parent Id of the process
-						/* CPU-specific state of this task */
-        struct thread_struct thread;
-	struct Trapframe proc_tf;			        // Saved registers
-        struct task_struct *task_link;               		// Next free Env
-        uint32_t proc_runs;                			// Number of times process has run
-
-        pde_t *proc_pgdir;                			// Kernel virtual address of page dir
-
-}task_struct;
-
-typedef struct mm_struct {
-	struct vm_area_struct * mmap;           /* list of VMAs */
-        struct vm_area_struct * mmap_cache;     /* last find_vma result */
-        uint64_t free_area_cache		/* 1st address space hole*/
-	
-	pml4e_t * pml4e;
-        int mm_users;                		/* Address space users */
-        int mm_count;                      	/* How many references to "struct mm_struct" (users count as 1) */
-        int map_count;                          /* Number of VMAs */
-
-	struct list_head mmlist;		/* list of all mm_structs */
-
-	uint64_t start_code;			/* start address of code */
-	uint64_t end_code;			/* final address of code */
-	uint64_t start_data;			/* start address of data */	
-	uint64_t end_data;			/* final address of data */
-	uint64_t start_brk;			/* start address of heap */
-	uint64_t brk;				/* final address of heap */
-	uint64_t start_stack;			/* start address of stack */
-	uint64_t arg_start;			/* start of arguments */
-	uint64_t arg_end;			/* end of arguments */
-        uint64_t total_vm;	                /* Total pages mapped */
- 
-	#ifdef CONFIG_MM_OWNER
-        /*
-        * "owner" points to a task that is regarded as the canonical
-        * user/owner of this mm. All of the following must be true in
-        * order for it to be changed:
-        *
-        * current == mm->owner
-        * current->mm != mm
-        * new_owner->mm == mm
-        * new_owner->alloc_lock is held
-        */
-       struct task_struct *owner;
-}mm_struct;
+#include <defs.h>
 
 typedef struct {
-	unsigned long seg;
-} mm_segment_t;
+	uint64_t stack[1024]; 		// process local stack
+	uint64_t rsp;			// stack pointer
+	uint64_t cr3;			// current value of CR3 register for process switch
+} task;
 
-typedef struct thread_info{
-	struct task_struct *task;
-	struct exec_domain *exec_domain;	/* execution domain */
-	uint32_t flags;				/* low level flags*/
-	uint32_t status;			/* thread synchronous flags*/
-	uint32_t cpu;				/* current CPU*/
-	int preempt_count;			/* 0 =>preemptable, <0 => BUG*/
-	mm_segment_t addr_limit;
-        uint32_t sig_on_uaccess_error:1;
-        uint32_t uaccess_err:1; 	 /* uaccess failed */
-}thread_info;
 
-struct vm_area_struct{
-
-	struct mm_struct *vm_mm;		/* Associated */
-	uint64_t vm_start;
-	uint64_t vm_end;
-	struct vm_area_struct *vm_next;
-};
-typedef vm_area_struct vma;	
-
-#endif // !PROCESS_H
+void first_context_switch();
+#endif

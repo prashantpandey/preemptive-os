@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <common.h>
 #include <paging.h>
+#include <process.h>
 
 void print_hello_world() {
 	printf("Hello World..!!");
@@ -34,6 +35,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	map_physical_address(modulep, physbase, physfree);
 	// kernel starts herei
 	print_hello_world();
+	
+	// calling the first context switch
+	first_context_switch();
 	while(1);
 }
 

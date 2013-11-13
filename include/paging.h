@@ -126,18 +126,14 @@ void initialise_paging();
 **/
 void switch_page_directory(pml4e *new);
 
-/**			
-  Retrieves a pointer to the page required.
-  If make == 1, if the page-table in which this page should
-  reside isn't created, create it!
-**/
-pte *get_page(uint64_t address, int make, pml4e *dir);
-
 /**
   Handler for page faults.
 **/
 void page_fault();
 
 void map_physical_address(uint32_t* modulep, void* physbase, void* physfree);
+
+page* page_alloc(int alloc_flags);
+uint64_t kmalloc(uint32_t size);
 
 #endif

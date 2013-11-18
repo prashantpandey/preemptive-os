@@ -35,9 +35,17 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	map_physical_address(modulep, physbase, physfree);
 	// kernel starts herei
 	print_hello_world();
+	uint64_t message = stoi("023323232");	
+	printf("\n%d", message);
 	
+	uint64_t decimal = octalToDecimal(232);
+	printf("\n%d", decimal);
+
+	int res = strcmp("HELLO","dsjhfkdhfkjhfjkshfd");
+	printf("\n%d", res);
 	// calling the first context switch
-	first_context_switch();
+	//first_context_switch();
+
 	while(1);
 }
 

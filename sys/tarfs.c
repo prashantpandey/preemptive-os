@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <sys/tarfs.h>
 #include <common.h>
+#include <stdio.h>
+
 uint64_t is_file_exists(char* filename)
 {
 		//printf("\n tarfs %x", &_binary_tarfs_start);
@@ -13,6 +15,7 @@ uint64_t is_file_exists(char* filename)
 	   while(strlen(test_tarfs->name) != 0)
 	   {
 		   test_tarfs = (struct posix_header_ustar *)(&_binary_tarfs_start + temp);
+		   stoi(test_tarfs->size);
 		   size = octalToDecimal(stoi(test_tarfs->size));
 		   //printf("\n");puts(test_tarfs->name);printf("    size %d", size);
 		   if(strlen(test_tarfs->name) == 0)
@@ -33,13 +36,13 @@ void get_file_sections(char* filename)
 	uint64_t offset = is_file_exists(filename);
 	//char *file_start= (char *)(&_binary_tarfs_start + offset);
 	struct posix_header_ustar *test_tarfs = (struct posix_header_ustar *)(&_binary_tarfs_start + offset - 512);
-	printf("\n %d file_size\n", octalToDecimal(stoi(test_tarfs->size)));
-	puts(test_tarfs->magic);
+//	printf("\n %d file_size\n", octalToDecimal(stoi(test_tarfs->size)));
+	//puts(test_tarfs->magic);
 	/*Elf64_Ehdr *elfhdr = (Elf64_Ehdr *) (&_binary_tarfs_start + offset);
 	printf("\nentry %x", elfhdr->e_entry);
 	printf("\nphysoffset %x num %d", elfhdr->e_phoff, elfhdr->e_phnum);
 	printf("\nssoffset %x num %d", elfhdr->e_shoff, elfhdr->e_shnum);*/
-	 Elf_hdr *elfhdr1 = ( Elf_hdr *) (&_binary_tarfs_start + offset);
+	Elf_hdr *elfhdr1 = ( Elf_hdr *) (&_binary_tarfs_start + offset);
 	printf("\n %x", elfhdr1->e_entry);
 	printf("\nphysoffset %x num %d", elfhdr1->e_phoff, elfhdr1->e_phnum);
 	printf("\nssoffset %x num %d", elfhdr1->e_shoff, elfhdr1->e_shnum);

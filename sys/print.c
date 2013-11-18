@@ -155,6 +155,50 @@ unsigned int printf_string(char *message, unsigned int line, unsigned int column
         return((int)(i - initial_p)/2);
 }
 
+uint64_t stoi(char *s) // the message and then the line #
+{
+	uint64_t i;
+	i = 0;
+	while(*s >= '0' && *s <= '9')
+	{
+		i = i * 10 + (*s - '0');
+		s++;
+	}
+	return i;
+}
+
+
+uint64_t octalToDecimal(uint64_t n)
+{
+
+	uint64_t decimal_equiv = 0, i = 0, rem = 0, pow_oct = 1;
+	while (n!=0)
+	{
+		rem = (int)n%10;
+		n /= 10;
+		if(i>0)			
+			pow_oct *=8;
+		decimal_equiv += rem*pow_oct;
+		i++;
+	}
+	return decimal_equiv;
+}
+
+int strcmp(char *str1, char *str2)
+{
+    if (*str1 < *str2)
+        return -1;
+ 
+    if (*str1 > *str2)
+        return 1;
+ 
+    if (*str1 == '\0')
+        return 0;
+ 
+    return strcmp(str1 + 1, str2 + 1);
+}
+
+
 // will spit out the integer at the given line number
 unsigned int printf_int(int message, unsigned int line, unsigned int column) // the message and the line #
 {

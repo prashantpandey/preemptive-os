@@ -11,6 +11,7 @@
 #include <common.h>
 #include <paging.h>
 #include <process.h>
+#include <sys/tarfs.h>
 
 void print_hello_world() {
 	printf("Hello World..!!");
@@ -21,9 +22,19 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	map_physical_address(modulep, physbase, physfree);
 	// kernel starts herei
 	print_hello_world();
+	uint64_t message = stoi("023323232");	
+	printf("\n String to integer check: %d", message);
 	
+	uint64_t decimal = octalToDecimal(232);
+	printf("\nOctal 232 to decimal is: %d", decimal);
+
+	int res = strcmp("HELLO","dsjhfkdhfkjhfjkshfd");
+	printf("\nComparing two strings: %d", res);
+
+	get_file_sections("/bin/hello/hello.o");
 	// calling the first context switch
-	first_context_switch();
+	//first_context_switch();
+
 	while(1);
 }
 

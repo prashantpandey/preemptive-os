@@ -15,6 +15,7 @@ static page *page_free_list = NULL;
 uint64_t end;
 static void* lphysbase;
 static void* lphysfree;
+pml4e* pml4e_table;
 
 void mem_init();
 
@@ -347,7 +348,7 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 void mem_init() 
 {
 	// creating the paging structures
-        pml4e* pml4e_table = boot_alloc(PGSIZE);
+        pml4e_table = boot_alloc(PGSIZE);
         memset(pml4e_table, 0, PGSIZE);
 		
 	uint64_t boot_cr3 = (uint64_t)PADDR((uint64_t)pml4e_table);

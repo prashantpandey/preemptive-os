@@ -101,6 +101,37 @@ void handler_interrupt_isr0()
           "iretq;");
 }
 
+void handler_interrupt_isr13()
+{
+        __asm__ (
+              "cli;"
+              "movq $13, %rax"
+              );
+
+         __asm__(".global x86_64_isr_vector13 \n"\
+                        "x86_64_isr_vector13:\n" \
+                        "    pushq %rax;" \
+                        "    pushq %rcx;" \
+                        "    pushq %rdx;" \
+                        "    pushq %rsi;" \
+                        "    pushq %rdi;" \
+                        "    pushq %r8;" \
+                        "    pushq %r9;" \
+                        "    pushq %r10;" \
+                        "    pushq %r11;" \
+                        "    call handler_print_isr;"\
+                        "    popq %r11;"                 \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rax;" \
+          "iretq;");
+}
+
 void handler_interrupt_isr14()
 {
         __asm__ (
@@ -227,12 +258,13 @@ void init_idt()
         idt_ptr.base  = (uint64_t)&idt_entries;
 	
 	// Will setup the particular ISR entry in the IDT
-        idt_set_gate(0,(uint64_t) &handler_interrupt_isr0, 0x08, 0x8E);
-        idt_set_gate(0,(uint64_t) &handler_interrupt_isr14, 0x08, 0x8E);
+        idt_set_gate(0, (uint64_t) &handler_interrupt_isr0, 0x08, 0x8E);
+        idt_set_gate(13, (uint64_t) &handler_interrupt_isr13, 0x08, 0x8E);
+        idt_set_gate(14, (uint64_t) &handler_interrupt_isr14, 0x08, 0x8E);
 	
 	// Will setup the respective IRQ entries in the IDT for PIT and Keyboard interrupt
-        idt_set_gate(32,(uint64_t) &irq0, 0x08, 0x8E);
-        idt_set_gate(33,(uint64_t) &irq1, 0x08, 0x8E);
+        idt_set_gate(32, (uint64_t) &irq0, 0x08, 0x8E);
+        idt_set_gate(33, (uint64_t) &irq1, 0x08, 0x8E);
 
         lidt();
 

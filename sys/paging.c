@@ -229,7 +229,7 @@ pte* pde_walk(pde* pde_t, const void* va, int create)
                         	pde_t[PDEX(va)] = (pde)page2pa(pp) | PTE_P | PTE_W | PTE_U;
 
                         	if(PDEX(va) >= PDEX(KERNBASE))
-                             		pde_t[PDEX(va)] = (pde)page2pa(pp) | PTE_P | PTE_W ;
+                             		pde_t[PDEX(va)] = (pde)page2pa(pp) | PTE_P | PTE_W | PTE_U;
                         	pp->pp_ref++;
                         }
                         else {
@@ -339,7 +339,7 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 			return;
 		}
 		*pte = pa + i;
-		*pte = *pte | (perm | PTE_P);
+		*pte = *pte | (perm | PTE_P | PTE_U);
 	}
 
 }
@@ -358,10 +358,10 @@ void mem_init()
 	//printf("After page init(page_free_list): %p", page_free_list);
 		
 	// map the kernel space
-	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, MEM_LIMIT, (uint64_t)lphysbase, PTE_W | PTE_P);
+	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, MEM_LIMIT, (uint64_t)lphysbase, PTE_W | PTE_P | PTE_U);
 		
 	// map the BIOS/Video memory region	
-	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P);
+	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P | PTE_U);
 	
 	printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		

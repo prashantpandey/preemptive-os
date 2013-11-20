@@ -21,7 +21,22 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 {
 	map_physical_address(modulep, physbase, physfree);
 	// kernel starts herei
-	print_hello_world();
+	//print_hello_world();
+
+	// Will reload the gdt
+        reload_gdt();
+
+        // setup_tss();
+
+	// Will initialize the IDT
+        init_idt();
+
+	// Will initialize the PIC and remap the interrupt number 0-15 to 32-47
+        pic_remap(0x20, 0x28);
+
+	// Will initialize the timer interrupt
+        init_timer(100);
+
 
 	// uint64_t message = stoi("023323232");	
 	// printf("\n String to integer check: %d", message);

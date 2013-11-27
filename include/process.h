@@ -2,13 +2,37 @@
 #define _PROCESS_H
 
 #include <defs.h>
+#include <paging.h>
 
 typedef struct {
+	uint32_t pid;			// unique process id
 	uint64_t stack[1024]; 		// process local stack
 	uint64_t rsp;			// stack pointer
 	uint64_t cr3;			// current value of CR3 register for process switch
 } task;
 
+task thread1;
+task thread2;
 
+task* prev;
+task* next;
+//int num_process = 2;
+task readyQ[5];
+
+bool flag;
+bool firstFlag;
+
+struct runQueue {
+        task thread;
+        struct unQueue* next;
+}__attribute__((packed));
+typedef struct runQueue runQ;
+
+
+void * get_kva(page *pp);
 void first_context_switch();
+void schedule();
+void initThreads();
+void function1();
+void function2();
 #endif

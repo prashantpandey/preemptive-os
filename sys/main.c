@@ -34,9 +34,11 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	// Will initialize the PIC and remap the interrupt number 0-15 to 32-47
         pic_remap(0x20, 0x28);
 
+	// initialize threads
+//	initThreads();	
+
 	// Will initialize the timer interrupt
         init_timer(100);
-
 
 	// uint64_t message = stoi("023323232");	
 	// printf("\n String to integer check: %d", message);

@@ -4,6 +4,7 @@ The file containing the functions for printf
 #include <stdio.h>
 #include <stdarg.h>
 #include <paging.h>
+#include <common.h>
 
 #define WHITE_TXT 0x07 // white on black text
 #define VIDMEM (0xb8000 + KERNBASE)  // start address of the video memory
@@ -369,8 +370,8 @@ void handle_backspace()
 	vidmem[i++] = ' ';
 	vidmem[i] = WHITE_TXT;
 	
-	//cursor_p_x--;
-        //printf_char('_', cursor_p_y, cursor_p_x);
+	cursor_p_x--;
+        printf_char('_', cursor_p_y, cursor_p_x);
 	show_cursor(-1);
 }
 

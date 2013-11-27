@@ -5,6 +5,7 @@
 #include <pic.h>
 #include <timer.h>
 #include <common.h>
+#include <process.h>
 
 extern void irq0();
 extern void irq1();
@@ -61,9 +62,15 @@ void handler_print_isr() {
 	unsigned long page_fault_add = 0;
 	__asm__ __volatile__ ("movq %%rax, %0" : "=r"(isr_num));
 	printf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
+	
 	if(isr_num == 14) {
 		__asm__ __volatile__ ("movq %%cr2, %0" : "=r"(page_fault_add));
 		printf("Page fault occured at this address: %p", page_fault_add);
+	}
+	
+	if(isr_num == 128) {
+		printf("\n Inside yield");
+		schedule();
 	}
 	
 	while(1);
@@ -79,7 +86,8 @@ void handler_interrupt_isr0()
 
 	 __asm__(".global x86_64_isr_vector0 \n"\
                         "x86_64_isr_vector0:\n" \
-                        "    pushq %rax;" \
+          		"    pushq %rax;" \
+                        "    pushq %rbx;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
                         "    pushq %rsi;" \
@@ -88,8 +96,16 @@ void handler_interrupt_isr0()
                         "    pushq %r9;" \
                         "    pushq %r10;" \
                         "    pushq %r11;" \
+                        "    pushq %r12;" \
+                        "    pushq %r13;" \
+                        "    pushq %r14;" \
+                        "    pushq %r15;" \
                         "    call handler_print_isr;"\
-                        "    popq %r11;"                 \
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
                         "    popq %r10;" \
                         "    popq %r9;" \
                         "    popq %r8;" \
@@ -97,9 +113,11 @@ void handler_interrupt_isr0()
                         "    popq %rsi;" \
                         "    popq %rdx;" \
                         "    popq %rcx;" \
+                        "    popq %rbx;" \
                         "    popq %rax;" \
-          "iretq;");
+		"iretq;");
 }
+
 
 void handler_interrupt_isr13()
 {
@@ -107,10 +125,11 @@ void handler_interrupt_isr13()
               "cli;"
               "movq $13, %rax"
               );
-
-         __asm__(".global x86_64_isr_vector13 \n"\
+	
+	__asm__(".global x86_64_isr_vector13 \n"\
                         "x86_64_isr_vector13:\n" \
-                        "    pushq %rax;" \
+          		"    pushq %rax;" \
+                        "    pushq %rbx;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
                         "    pushq %rsi;" \
@@ -119,8 +138,16 @@ void handler_interrupt_isr13()
                         "    pushq %r9;" \
                         "    pushq %r10;" \
                         "    pushq %r11;" \
+                        "    pushq %r12;" \
+                        "    pushq %r13;" \
+                        "    pushq %r14;" \
+                        "    pushq %r15;" \
                         "    call handler_print_isr;"\
-                        "    popq %r11;"                 \
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
                         "    popq %r10;" \
                         "    popq %r9;" \
                         "    popq %r8;" \
@@ -128,8 +155,9 @@ void handler_interrupt_isr13()
                         "    popq %rsi;" \
                         "    popq %rdx;" \
                         "    popq %rcx;" \
+                        "    popq %rbx;" \
                         "    popq %rax;" \
-          "iretq;");
+		"iretq;");	
 }
 
 void handler_interrupt_isr14()
@@ -142,6 +170,7 @@ void handler_interrupt_isr14()
          __asm__(".global x86_64_isr_vector14 \n"\
                         "x86_64_isr_vector14:\n" \
                         "    pushq %rax;" \
+                        "    pushq %rbx;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
                         "    pushq %rsi;" \
@@ -150,8 +179,16 @@ void handler_interrupt_isr14()
                         "    pushq %r9;" \
                         "    pushq %r10;" \
                         "    pushq %r11;" \
+                        "    pushq %r12;" \
+                        "    pushq %r13;" \
+                        "    pushq %r14;" \
+                        "    pushq %r15;" \
                         "    call handler_print_isr;"\
-                        "    popq %r11;"                 \
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
                         "    popq %r10;" \
                         "    popq %r9;" \
                         "    popq %r8;" \
@@ -159,9 +196,53 @@ void handler_interrupt_isr14()
                         "    popq %rsi;" \
                         "    popq %rdx;" \
                         "    popq %rcx;" \
+                        "    popq %rbx;" \
                         "    popq %rax;" \
           "iretq;");
 }
+
+// To handle the ring 3 system calls
+void handler_interrupt_isr128()
+{
+        __asm__ (
+              "cli;"
+              "movq $128, %rax"
+              );
+
+         __asm__(".global x86_64_isr_vector128 \n"\
+                        "x86_64_isr_vector128:\n" \
+          		"    pushq %rax;" \
+                        "    pushq %rbx;" \
+                        "    pushq %rcx;" \
+                        "    pushq %rdx;" \
+                        "    pushq %rsi;" \
+                        "    pushq %rdi;" \
+                        "    pushq %r8;" \
+                        "    pushq %r9;" \
+                        "    pushq %r10;" \
+                        "    pushq %r11;" \
+                        "    pushq %r12;" \
+                        "    pushq %r13;" \
+                        "    pushq %r14;" \
+                        "    pushq %r15;" \
+                        "    call handler_print_isr;"\
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rbx;" \
+                        "    popq %rax;" \
+		"iretq;");
+}
+
 
 /* Prints the IRQ specific message */
 void handler_print_irq() {
@@ -181,6 +262,7 @@ void handler_interrupt_irq0()
          __asm__(".global x86_64_irq_vector0 \n"\
                         "x86_64_irq_vector0:\n" \
 		        "    pushq %rax;" \
+                        "    pushq %rbx;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
                         "    pushq %rsi;" \
@@ -189,7 +271,8 @@ void handler_interrupt_irq0()
                         "    pushq %r9;" \
                         "    pushq %r10;" \
                         "    pushq %r11;" \
-                        "    call timer_callback;"\
+                        "    call timer_callback;"	\
+			"    call schedule;"	\
                         "    popq %r11;"                 \
                         "    popq %r10;" \
                         "    popq %r9;" \
@@ -198,6 +281,7 @@ void handler_interrupt_irq0()
                         "    popq %rsi;" \
                         "    popq %rdx;" \
                         "    popq %rcx;" \
+                        "    popq %rbx;" \
                         "    popq %rax;" \
 			"    sti;" \
           "iretq;");
@@ -216,6 +300,7 @@ void handler_interrupt_irq1()
          __asm__(".global x86_64_irq_vector1 \n"\
                         "x86_64_irq_vector1:\n" \
                         "    pushq %rax;" \
+                        "    pushq %rbx;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
                         "    pushq %rsi;" \
@@ -233,6 +318,7 @@ void handler_interrupt_irq1()
                         "    popq %rsi;" \
                         "    popq %rdx;" \
                         "    popq %rcx;" \
+                        "    popq %rbx;" \
                         "    popq %rax;" \
 
           "iretq;");
@@ -248,7 +334,7 @@ void idt_set_gate(int num, uint64_t base, uint16_t sel, uint8_t flags)
         idt_entries[num].sel     = sel;
         idt_entries[num].always0 = 0;
 
-        idt_entries[num].flags   = flags /* | 0x60 */;
+        idt_entries[num].flags   = flags;
 }
 
 // Initialize IDT
@@ -261,6 +347,8 @@ void init_idt()
         idt_set_gate(0, (uint64_t) &handler_interrupt_isr0, 0x08, 0x8E);
         idt_set_gate(13, (uint64_t) &handler_interrupt_isr13, 0x08, 0x8E);
         idt_set_gate(14, (uint64_t) &handler_interrupt_isr14, 0x08, 0x8E);
+	
+        idt_set_gate(128, (uint64_t) &handler_interrupt_isr128, 0x08, 0xEE);		// DPL 3
 	
 	// Will setup the respective IRQ entries in the IDT for PIT and Keyboard interrupt
         idt_set_gate(32, (uint64_t) &irq0, 0x08, 0x8E);

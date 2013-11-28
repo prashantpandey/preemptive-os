@@ -28,7 +28,7 @@ void timer_callback()
    	tick++;
 	outb(0x20, 0x20);	
 
-	if(tick % 10 == 0) {
+	if(tick % 100 == 0) {
     		total_time++;
 		int cursor_p_x = 30;
 		int cursor_p_y = 24;
@@ -146,7 +146,7 @@ void timer_callback()
 		}
 	else {
 	printf("Inside second context switch..!!");
-	static int i = 0;
+	int i = 0;
 		prev = (task *)&readyQ[i];
             i = (i + 1) % num_process;
             next = (task *)&readyQ[i];

@@ -20,22 +20,22 @@ void print_hello_world() {
 void start(uint32_t* modulep, void* physbase, void* physfree)
 {
 	map_physical_address(modulep, physbase, physfree);
-	// kernel starts herei
+	// kernel starts here
 	//print_hello_world();
 
 	// Will reload the gdt
         reload_gdt();
 
-        // setup_tss();
+        setup_tss();
 
 	// Will initialize the IDT
-        init_idt();
+        // init_idt();
 
 	// Will initialize the PIC and remap the interrupt number 0-15 to 32-47
         pic_remap(0x20, 0x28);
 
 	// initialize threads
-//	initThreads();	
+	initThreads();	
 
 	// Will initialize the timer interrupt
         init_timer(100);
@@ -52,7 +52,9 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	//get_file_sections("/bin/hello/hello.o");
 	
 	// calling the first context switch
-	first_context_switch();
+	//first_context_switch();
+	
+	//__asm__ __volatile__("int $0x80");
 
 	while(1);
 }

@@ -6,9 +6,16 @@
 #include <timer.h>
 #include <common.h>
 #include <process.h>
+#include <paging.h>
+#include <sys/gdt.h>
 
 extern void irq0();
 extern void irq1();
+
+//extern pml4e *pml4e_table;
+
+//bool firstSwitch = true;
+//bool counter = true;
 
 // Interrupt Descriptor Table(IDT) structure and utility functions
 
@@ -61,18 +68,84 @@ void handler_print_isr() {
 	unsigned long isr_num = 0;
 	unsigned long page_fault_add = 0;
 	__asm__ __volatile__ ("movq %%rax, %0" : "=r"(isr_num));
-	printf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
 	
 	if(isr_num == 14) {
 		__asm__ __volatile__ ("movq %%cr2, %0" : "=r"(page_fault_add));
 		printf("Page fault occured at this address: %p", page_fault_add);
 	}
 	
-	if(isr_num == 128) {
-		printf("\n Inside yield");
-		schedule();
-	}
+	else if(isr_num == 128) {
+       		        printf("Inside Yield");
+      schedule();
+      
+	/*
+        static int i=0;
+
+        prev = (task *)&readyQ[i]; 
+        i = (i + 1) % num_process; 
+        next = (task *)&readyQ[i]; 
+ 
+            asm volatile("cli");
+            
+
+            asm volatile("addq $0x08,%rsp");
+            asm volatile("pushq %rax");
+            asm volatile("pushq %rbx");
+            asm volatile("pushq %rcx");
+            asm volatile("pushq %rdx");
+            asm volatile("pushq %rsi");
+            asm volatile("pushq %rdi");
+            asm volatile("pushq %r8");
+            asm volatile("pushq %r9");
+            asm volatile("pushq %r10");
+            asm volatile("pushq %r11");
+            asm volatile("pushq %r12");
+            asm volatile("pushq %r13");
+            asm volatile("pushq %r14");
+            asm volatile("pushq %r15");
+       
+            __asm__ __volatile__(
+                "movq %%rsp, %0;"
+                :"=m"(prev->rsp)
+                :
+                :"memory"
+            );
+    
+            asm volatile("movq %0, %%cr3":: "a"(next->cr3));
+    
+            __asm__ __volatile__ (
+                "movq %0, %%rsp;"
+                :
+                :"m"(next->rsp)
+                :"memory"
+            );
+
+            tss.rsp0=(uint64_t)&next->stack[63];
+
+            switch_to(&readyQ[0], &readyQ[1]);
+            asm volatile("popq %r15");
+            asm volatile("popq %r14");
+            asm volatile("popq %r13");
+            asm volatile("popq %r12");
+            asm volatile("popq %r11");
+            asm volatile("popq %r10");
+            asm volatile("popq %r9");
+            asm volatile("popq %r8");
+            asm volatile("popq %rdi");
+            asm volatile("popq %rsi");
+            asm volatile("popq %rdx");
+            asm volatile("popq %rcx");
+            asm volatile("popq %rbx");
+            asm volatile("popq %rax");
+            asm volatile("sti");
+            asm volatile("iretq");
+        */ 
 	
+	}
+	else {
+		printf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
+	}
+
 	while(1);
 }
 

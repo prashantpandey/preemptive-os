@@ -16,7 +16,7 @@ task thread2;
 
 task* prev;
 task* next;
-//int num_process = 2;
+//int num_process;
 task readyQ[5];
 
 bool flag;
@@ -32,6 +32,7 @@ typedef struct runQueue runQ;
 void * get_kva(page *pp);
 void first_context_switch();
 void schedule();
+void switch_to(task* prev, task* next);
 void initThreads();
 void function1();
 void function2();

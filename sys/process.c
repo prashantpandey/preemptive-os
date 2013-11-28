@@ -12,28 +12,13 @@ void * get_kva(page *pp)
 {
     	uint64_t ppn_addr= page2ppn(pp) << PGSHIFT;
     	//uint32_t __m_ppn = ppn_addr >> PTXSHIFT ;
+
     	uint64_t kva_addr = ppn_addr + KERNBASE; 
     	return (void *)kva_addr;
 }
 
 extern pml4e *pml4e_table;
 
-/*
-struct runQueue {
-	task thread;
-	struct unQueue* next;	
-}__attribute__((packed));
-typedef struct runQueue runQ;
-
-task thread1;
-task thread2;
-
-int num_process = 2;
-task readyQ[5]; 
-
-bool flag = true;
-bool firstFlag = true;
-*/
 
 void function1();
 void function2();
@@ -59,8 +44,8 @@ void initThreads() {
                 pml4b[i] = 0;
         }
 
-        pml4a[511] = pml4e_table[511]; //point to pdpe of kerne
-        pml4b[511] = pml4e_table[511]; //point to pdpe of kerne
+        pml4a[511] = pml4e_table[511]; //point to pdpe of kernel
+        pml4b[511] = pml4e_table[511]; //point to pdpe of kernel
 
         thread1.cr3 = (uint64_t)PADDR((uint64_t)pml4a);
         thread2.cr3 = (uint64_t)PADDR((uint64_t)pml4b);
@@ -69,7 +54,7 @@ void initThreads() {
         thread1.rsp = (uint64_t)&thread1.stack[45];
 
         thread1.stack[63] = 0x23 ;                              //  Data Segment    
-        thread1.stack[62] = (uint64_t)&thread1.stack[63] ;      //  RIP
+        thread1.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
         //thread1.stack[61] = 0x20202 ;                           //  RFlags
         thread1.stack[61] = 0x246;                           //  EFlags
         thread1.stack[60] = 0x1b ;                              // Code Segment
@@ -78,7 +63,7 @@ void initThreads() {
         thread2.rsp = (uint64_t)&thread2.stack[45];
 
         thread2.stack[63] = 0x23 ;                              //  Data Segment    
-        thread2.stack[62] = (uint64_t)&thread2.stack[63] ;      //  RIP
+        thread2.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
         //thread1.stack[61] = 0x20202 ;                           //  RFlags
         thread2.stack[61] = 0x246;                           //  EFlags
         thread2.stack[60] = 0x1b ;                              // Code Segment
@@ -96,6 +81,8 @@ void first_context_switch()
 {    
 	initThreads();
     	
+	firstFlag = false;
+	
 	// load the value of rsp of thread1 into the kernel rsp
     	// this will cause context switch
 
@@ -128,16 +115,6 @@ void first_context_switch()
         __asm__ __volatile__("popq %rax");
 	__asm__ __volatile__("sti");	
 
-	//__asm__ __volatile__(
-        //	"movq %0, %%r15;"
-        //	:   
-        //	:"r"(&thread1.stack[63])
-    	//);  
-
-    	//__asm__ __volatile__(
-        //	"movq %%r15, %0;"
-        //	:"=r"(tss.rsp0)
-    	//);
 	tss.rsp0 = (uint64_t)&thread1.stack[63];  
 
     	__asm__ __volatile__("mov $0x2b,%ax");
@@ -153,7 +130,7 @@ void switch_to(task* prev, task* next) {
     	// this will cause the context switch from prev task to next task
     	
 	// code commented because the push operation is done from the timer interrupt handler
-	/*		
+        /*			
 	__asm__ __volatile__ (
         	"pushq %rax;"\
         	"pushq %rbx;"\
@@ -188,24 +165,22 @@ void switch_to(task* prev, task* next) {
         );
 
 	tss.rsp0 = (uint64_t)&next->stack[63];
-
-    	__asm__ __volatile__(
-		"popq %r15;" \
-		"popq %r14;" \
-		"popq %r13;" \
-		"popq %r12;" \
-		"popq %r11;" \
-                "popq %r10;" \
-                "popq %r9;" \
-                "popq %r8;" \
-                "popq %rdi;" \
-                "popq %rsi;" \
-                "popq %rdx;" \
-                "popq %rcx;" \
-                "popq %rbx;" \
-                "popq %rax;" \
-		"sti;" 
-   	);  
+        
+	__asm__ __volatile__("popq %r15");
+	__asm__ __volatile__("popq %r14");
+        __asm__ __volatile__("popq %r13");
+        __asm__ __volatile__("popq %r12");
+        __asm__ __volatile__("popq %r11");
+        __asm__ __volatile__("popq %r10");
+        __asm__ __volatile__("popq %r9");
+        __asm__ __volatile__("popq %r8");
+        __asm__ __volatile__("popq %rdi");
+        __asm__ __volatile__("popq %rsi");
+        __asm__ __volatile__("popq %rdx");
+        __asm__ __volatile__("popq %rcx");
+        __asm__ __volatile__("popq %rbx");
+        __asm__ __volatile__("popq %rax");
+        __asm__ __volatile__("sti");  
         __asm__("iretq");
 }
 
@@ -213,24 +188,7 @@ void schedule() {
     	// will halt the currently executing thread
     	// will pop the next task from the ready queue
     	// call switch_to function with prev and next task
-    	//counter++;
-	//if(counter % 10 == 0) {
-        	if(firstFlag) {
-                	firstFlag = false;
-                	first_context_switch();
-       		}
-       	 	else {
-                	if(flag) {
-                        	flag = false;
-                        	switch_to(&readyQ[0], &readyQ[1]);
-                	}
-                	else {
-                        	flag = true;
-                        	switch_to(&readyQ[1], &readyQ[0]);
-                	}
-        	}	
-	//}
-	/*
+        //printf("In schedule%s %s", firstFlag, flag);	
 	if(firstFlag) {
 		firstFlag = false;
 		first_context_switch();
@@ -245,7 +203,6 @@ void schedule() {
                 	switch_to(&readyQ[1], &readyQ[0]);
         	}
 	}
-	*/
 }
 
 void function1() {
@@ -256,19 +213,21 @@ void function1() {
 		//uint64_t *a = 0x0ul; int b = *a;
 		//printf("%d",b);
 
-	printf("\nHello");    	
+	printf("\nHello");    		
 	while(1) {
-        	printf("\nHello");
+		static int i = 0;
+        	printf("\nHello inside while: %d", i++);
         	//schedule();
-        	yield();
+        	//yield();
    	}
 }
 
 void function2() {
 	printf("\nWorld..!!");
     	while(1) {
-        	printf("World..!!");
+		static int i = 0;
+        	printf("World..!! inside while: %d", i++);
         	//schedule();
-        	yield();
+        	//yield();
    	}
 }

@@ -14,8 +14,8 @@ extern pml4e *pml4e_table;
 int tick = 0;
 int total_time = 0;
 
-//bool firstSwitch = true;
-
+bool firstSwitch = true;
+int num_process = 2;
 
 // Will handle the timer interrupt when the interrupt is fired.
 // Also will print the time elasped since the last reboot on the lower right corner of the screen
@@ -28,7 +28,7 @@ void timer_callback()
    	tick++;
 	outb(0x20, 0x20);	
 
-	if(tick % 100 == 0) {
+	if(tick % 10 == 0) {
     		total_time++;
 		int cursor_p_x = 30;
 		int cursor_p_y = 24;
@@ -47,7 +47,7 @@ void timer_callback()
 		cursor_p_x = cursor_p_x + printf_string(":", cursor_p_y, cursor_p_x);
 		cursor_p_x = cursor_p_x + printf_int(second, cursor_p_y, cursor_p_x);
 
-	/*		
+			
 		if(firstSwitch) {
 				firstSwitch = false;
 			        page   *pp1=NULL;
@@ -77,19 +77,19 @@ void timer_callback()
         thread2.cr3 = (uint64_t)PADDR((uint64_t)pml4b);
 
         thread1.stack[59] = (uint64_t)&function1;
-        thread1.rsp = (uint64_t)&thread1.stack[49];
+        thread1.rsp = (uint64_t)&thread1.stack[45];
 
         thread1.stack[63] = 0x23 ;                              //  Data Segment    
-        thread1.stack[62] = (uint64_t)&thread1.stack[63] ;      //  RIP
+        thread1.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
         //thread1.stack[61] = 0x20202 ;                           //  RFlags
         thread1.stack[61] = 0x246;                           //  EFlags
         thread1.stack[60] = 0x1b ;                              // Code Segment
 
         thread2.stack[59] = (uint64_t)&function2;
-        thread2.rsp = (uint64_t)&thread2.stack[49];
+        thread2.rsp = (uint64_t)&thread2.stack[45];
 
         thread2.stack[63] = 0x23 ;                              //  Data Segment    
-        thread2.stack[62] = (uint64_t)&thread2.stack[63] ;      //  RIP
+        thread2.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
         //thread1.stack[61] = 0x20202 ;                           //  RFlags
         thread2.stack[61] = 0x246;                           //  EFlags
         thread2.stack[60] = 0x1b ;                              // Code Segment
@@ -110,6 +110,10 @@ void timer_callback()
             :"r"(thread1.rsp)
         );
 
+        __asm__ __volatile__("popq %r15");
+        __asm__ __volatile__("popq %r14");
+        __asm__ __volatile__("popq %r13");
+        __asm__ __volatile__("popq %r12");
         __asm__ __volatile__("popq %r11");
         __asm__ __volatile__("popq %r10");
         __asm__ __volatile__("popq %r9");
@@ -142,7 +146,7 @@ void timer_callback()
 		}
 	else {
 	printf("Inside second context switch..!!");
-	int i = 0;
+	static int i = 0;
 		prev = (task *)&readyQ[i];
             i = (i + 1) % num_process;
             next = (task *)&readyQ[i];
@@ -166,6 +170,10 @@ void timer_callback()
         tss.rsp0 = (uint64_t)&next->stack[63];
 
         __asm__ __volatile__(
+                "popq %r15;" \
+                "popq %r14;" \
+                "popq %r13;" \
+                "popq %r12;" \
                 "popq %r11;" \
                 "popq %r10;" \
                 "popq %r9;" \
@@ -180,7 +188,7 @@ void timer_callback()
         );
         __asm__("iretq");
 	}
-	*/
+	
 		
  	}
 }

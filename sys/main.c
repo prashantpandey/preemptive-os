@@ -29,7 +29,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
         setup_tss();
 
 	// Will initialize the IDT
-        // init_idt();
+        init_idt();
 
 	// Will initialize the PIC and remap the interrupt number 0-15 to 32-47
         pic_remap(0x20, 0x28);
@@ -52,7 +52,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	//get_file_sections("/bin/hello/hello.o");
 	
 	// calling the first context switch
-	//first_context_switch();
+	// first_context_switch();
 	
 	while(1);
 }

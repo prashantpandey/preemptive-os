@@ -3,11 +3,17 @@
 #include <stdio.h>
 #include <paging.h>
 #include <sys/gdt.h>
+#include <sys/tarfs.h>
+#include <common.h>
 
 #define yield() __asm__ __volatile__("int $0x80")
 
+static void load_icode(task* t, char* filename, uint32_t size);
+
 static uint32_t ids = 0;
 extern pml4e *pml4e_table;
+extern uint64_t boot_cr3;
+
 runQueue* currProcess;
 bool firstSwitch = true;
 
@@ -191,9 +197,14 @@ void initThreads() {
         pml4b[511] = pml4e_table[511]; //point to pdpe of kernel
 
         thread1.cr3 = (uint64_t)PADDR((uint64_t)pml4a);
-        thread2.cr3 = (uint64_t)PADDR((uint64_t)pml4b);
+	thread1.pml4e_p = (pml4e*)pml4a;
+        thread2.cr3 = (uint64_t)PADDR((uint64_t)pml4b);	
+	thread2.pml4e_p = (pml4e*)pml4b;
 
-        thread1.stack[59] = (uint64_t)&function1;
+	load_icode(&thread1, "bin/hello", 0);
+    	load_icode(&thread2, "bin/hello1", 0);
+	
+        thread1.stack[59] = (uint64_t)thread1.entry;
         thread1.rsp = (uint64_t)&thread1.stack[45];
 
         thread1.stack[63] = 0x23 ;                              //  Data Segment    
@@ -202,7 +213,7 @@ void initThreads() {
         thread1.stack[61] = 0x246;                           //  EFlags
         thread1.stack[60] = 0x1b ;                              // Code Segment
 
-        thread2.stack[59] = (uint64_t)&function2;
+        thread2.stack[59] = (uint64_t)thread2.entry;
         thread2.rsp = (uint64_t)&thread2.stack[45];
 
         thread2.stack[63] = 0x23 ;                              //  Data Segment    
@@ -374,3 +385,69 @@ void function2() {
         	//yield();
    	}
 }
+
+static void region_alloc(task* t, void* va, uint32_t len) {
+	uint64_t va_start = PAGE_ROUNDOFF((uint64_t)va, PGSIZE);
+    	uint64_t va_end = PAGE_ROUNDOFF((uint64_t)va+len, PGSIZE);
+    	page* p;
+    	uint64_t v;
+    	for (v = va_start; v < va_end; v += PGSIZE) {
+        	if (!(p = page_alloc(ALLOC_ZERO)))
+            		printf("Running out of memory\n");
+        	else {
+            		if (page_insert((pml4e *) t->pml4e_p, p,(uint64_t) v, PTE_P | PTE_U | PTE_W) != 0)
+                	printf("Running out of memory\n");
+        	}
+    	}
+}
+
+static void load_icode(task* t, char* filename, uint32_t size) {
+	
+	uint64_t offset = is_file_exists(filename);
+ 
+    	if(offset == 0 || offset == 999) {
+        	printf("\n Error. File not found in tarfs.");
+        	offset = 0;
+    	} else {
+        	Elf_hdr *elf = (Elf_hdr *) (&_binary_tarfs_start + offset);
+ 
+        	Elf64_Phdr *ph, *eph;
+        	ph = (Elf64_Phdr *) ((uint8_t *) elf + elf->e_phoff);
+ 
+        	eph = ph + elf->e_phnum;
+ 
+        	for(; ph < eph; ph++) {
+            		if(ph->p_type == ELF_PROG_LOAD) {
+                		// uint64_t va = ph->p_vaddr;
+	                	// uint64_t size = ph->p_memsz;
+        	        	// uint64_t offset = ph->p_offset;
+                		// uint64_t i = 0;
+                		if(ph->p_filesz > ph->p_memsz) {
+                    			printf("Wrong size in elf binary\n");
+				}
+        	        	printf("\n vaddr : %x size %x", ph->p_vaddr, ph->p_memsz);
+ 	
+        	        	region_alloc(t, (void*) ph->p_vaddr, ph->p_memsz);
+                		// Switch to env's address space so that we can use memcpy
+                		lcr3(t->cr3);
+	                	memcpy((char*) ph->p_vaddr, (void *) elf + ph->p_offset, ph->p_filesz);
+ 	
+        	        	if(ph->p_filesz < ph->p_memsz) {
+                	    		memset((char*) ph->p_vaddr + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+				}
+ 
+                		// Switch back to kernel's address space
+                		lcr3(boot_cr3);
+            		}
+        	}
+ 
+        // Now map one page for the program's initial stack
+        // at virtual address USTACKTOP - PGSIZE.
+        //region_alloc(e, (void*) (USTACKTOP - PGSIZE), PGSIZE);
+ 
+        // Magic to start executing environment at its address.
+        	t->entry = elf->e_entry;
+    	}
+}
+
+

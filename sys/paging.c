@@ -16,6 +16,7 @@ uint64_t end;
 static void* lphysbase;
 static void* lphysfree;
 pml4e* pml4e_table;
+uint64_t boot_cr3;
 
 void mem_init();
 
@@ -351,7 +352,7 @@ void mem_init()
         pml4e_table = boot_alloc(PGSIZE);
         memset(pml4e_table, 0, PGSIZE);
 		
-	uint64_t boot_cr3 = (uint64_t)PADDR((uint64_t)pml4e_table);
+	boot_cr3 = (uint64_t)PADDR((uint64_t)pml4e_table);
 
 	// initialize the physical pages and free list
 	page_init();
@@ -365,10 +366,50 @@ void mem_init()
 	
 	//printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		
-	asm volatile("mov %0, %%cr3":: "b"(boot_cr3));
+	__asm__ __volatile__("mov %0, %%cr3":: "b"(boot_cr3));
 	//printf("Hello Pagination done.%p", boot_cr3);	
+}
 
-	
+void invalidate_tlb(uint64_t addr) {
+	__asm__ __volatile__("invlpg (%0)" ::"r" (addr) : "memory");
+}
 
+page* page_lookup(pml4e* pml4e_t, uint64_t va, pte** pte_t) {
+	 pte* pte = pml4e_walk(pml4e_t, (void*)va, 0);
+         if(pte == NULL) {
+                 *pte_t = NULL;
+                 return NULL;
+         }
+         else if(*pte != 0) {
+                 if (pte_t != NULL)
+                         *pte_t = pte;
+                 return pa2page((uint64_t)(PTE_ADDR(*pte)));
+         }
+         return NULL;
+}
+
+void page_remove(pml4e* pml4e_t, uint64_t va) {
+	pte* pte_t;
+	page* pp = page_lookup(pml4e_t, va, &pte_t);
+	if(pp) {
+		if(pte_t) {
+			*pte_t = 0;
+			invalidate_tlb(va);
+		}
+		page_decref(pp);
+	}
+}
+
+uint32_t page_insert(pml4e* pml4e_t, page* pp, uint64_t va, int perm) {
+	pte* pte_t = pml4e_walk(pml4e_t, (void*)va, 1);
+	if(pte_t == NULL) {
+		return -1;
+	}
+	pp->pp_ref++;
+	if(*pte_t & PTE_P) {
+		page_remove(pml4e_t, va);
+	}
+	*pte_t = ((uint64_t)page2pa(pp)) | perm | PTE_P | PTE_U;
+	return 0;
 }
 

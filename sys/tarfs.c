@@ -54,7 +54,7 @@ int get_per_ind_file(char* dir)
 uint64_t is_file_exists(char* filename)
 {
 	// printf("\n Binary tarfs start:  %x", &_binary_tarfs_start);
-	struct posix_header_ustar *test_tarfs = (struct posix_header_ustar *)&_binary_tarfs_start;
+	struct posix_header_ustar* test_tarfs = (struct posix_header_ustar *)&_binary_tarfs_start;
 	int i = 1, temp = 512;
 	uint64_t size;
 	// printf("\n Name %s \t Mode %s \t uid %s \t gid %s\t",test_tarfs->name, test_tarfs->mode, test_tarfs->uid, test_tarfs->gid);

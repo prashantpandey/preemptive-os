@@ -5,6 +5,7 @@ The file containing the functions for printf
 #include <stdarg.h>
 #include <paging.h>
 #include <common.h>
+#include <string.h>
 
 #define WHITE_TXT 0x07 // white on black text
 #define VIDMEM (0xb8000 + KERNBASE)  // start address of the video memory
@@ -18,6 +19,7 @@ int cursor_p_y = 0;
  * generic utility functions 
  */
 
+/*
 // Will return the length of the string
 unsigned int strlen(const char *str)
 {
@@ -26,6 +28,14 @@ unsigned int strlen(const char *str)
                 i++;
         return i;
 }
+
+char* strcpy(char *dst, const char *src) {
+	char *ret;
+	ret = dst;
+	while ((*dst++ = *src++) != '\0')
+	return ret;
+}
+*/
 
 // Will set the int array to 0's
 unsigned int int_array_reset(int array[], int cnt)
@@ -185,6 +195,7 @@ uint64_t octalToDecimal(uint64_t n)
 	return decimal_equiv;
 }
 
+/*
 int strcmp(char *str1, char *str2)
 {
     if (*str1 < *str2)
@@ -198,7 +209,7 @@ int strcmp(char *str1, char *str2)
  
     return strcmp(str1 + 1, str2 + 1);
 }
-
+*/
 
 // will spit out the integer at the given line number
 unsigned int printf_int(int message, unsigned int line, unsigned int column) // the message and the line #

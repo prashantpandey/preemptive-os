@@ -4,6 +4,9 @@
 extern char _binary_tarfs_start;
 extern char _binary_tarfs_end;
 
+#define ELF_MAGIC	0x464C457F
+#define ELF_PROG_LOAD	1
+
 struct posix_header_ustar {
 	char name[100];
 	char mode[8];
@@ -26,7 +29,7 @@ struct posix_header_ustar {
 
 #define EI_NIDENT 16
 
-    typedef struct {
+typedef struct {
         unsigned char e_ident[EI_NIDENT];
         uint16_t      e_type;
         uint16_t      e_machine;
@@ -41,31 +44,31 @@ struct posix_header_ustar {
         uint16_t      e_shentsize;
         uint16_t      e_shnum;
         uint16_t      e_shstrndx;
-    } Elf_hdr;
+} Elf_hdr;
 
-    typedef struct {
-                   uint32_t   p_type;
-                   uint32_t   p_flags;
-                   uint64_t   p_offset;
-                   uint64_t   p_vaddr;
-                   uint64_t   p_paddr;
-                   uint64_t   p_filesz;
-                   uint64_t   p_memsz;
-                   uint64_t   p_align;
-               } Elf64_Phdr;
+typedef struct {
+        uint32_t   p_type;
+        uint32_t   p_flags;
+        uint64_t   p_offset;
+        uint64_t   p_vaddr;
+        uint64_t   p_paddr;
+        uint64_t   p_filesz;
+        uint64_t   p_memsz;
+        uint64_t   p_align;
+} Elf64_Phdr;
 
-               typedef struct {
-                         uint32_t   sh_name;
-                         uint32_t   sh_type;
-                         uint64_t   sh_flags;
-                         uint64_t   sh_addr;
-                         uint64_t   sh_offset;
-                         uint64_t   sh_size;
-                         uint32_t   sh_link;
-                         uint32_t   sh_info;
-                         uint64_t   sh_addralign;
-                         uint64_t   sh_entsize;
-                     } Elf64_Shdr;
+typedef struct {
+        uint32_t   sh_name;
+        uint32_t   sh_type;
+        uint64_t   sh_flags;
+        uint64_t   sh_addr;
+        uint64_t   sh_offset;
+        uint64_t   sh_size;
+        uint32_t   sh_link;
+        uint32_t   sh_info;
+        uint64_t   sh_addralign;
+        uint64_t   sh_entsize;
+} Elf64_Shdr;
 
 typedef struct {
         unsigned char e_ident[16];
@@ -86,5 +89,25 @@ typedef struct {
 
 uint64_t is_file_exists(char* filename);
 void get_file_sections(char* filename);
+
+//TARFS file system
+typedef struct {
+    char name[100];
+    int size;
+    int typeflag;
+    uint64_t addr_hdr;
+    int par_ind;
+} tarfs_entry;
+
+extern tarfs_entry tarfs_fs[100];
+
+void tarfs_init();
+
+uint64_t open_dir(char * dir);
+uint64_t read_dir(char * dir);
+uint64_t open(char * file);
+int read_file(uint64_t file_addr, int size, uint64_t buf);
+#define DIRECTORY 5
+#define FILE_TYPE 0
 
 #endif

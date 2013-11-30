@@ -54,8 +54,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	// calling the first context switch
 	//first_context_switch();
 	
-	//__asm__ __volatile__("int $0x80");
-
 	while(1);
 }
 

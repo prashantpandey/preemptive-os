@@ -9,6 +9,8 @@ typedef struct {
 	uint64_t stack[1024]; 		// process local stack
 	uint64_t rsp;			// stack pointer
 	uint64_t cr3;			// current value of CR3 register for process switch
+	pml4e* pml4e_p;
+	uint64_t entry;	
 } task;
 
 task thread1;
@@ -20,14 +22,15 @@ task* next;
 task readyQ[5];
 
 bool flag;
-bool firstFlag;
+//bool firstFlag;
 
 struct runQueue {
-        task thread;
-        struct unQueue* next;
+        task process;
+        struct runQueue* next;
 }__attribute__((packed));
-typedef struct runQueue runQ;
+typedef struct runQueue runQueue;
 
+runQueue* runQ;
 
 void * get_kva(page *pp);
 void first_context_switch();

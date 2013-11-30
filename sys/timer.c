@@ -14,8 +14,10 @@ extern pml4e *pml4e_table;
 int tick = 0;
 int total_time = 0;
 
-bool firstSwitch = true;
+bool firstSwitchT = true;
 int num_process = 2;
+bool contextSwitch = true;
+
 
 // Will handle the timer interrupt when the interrupt is fired.
 // Also will print the time elasped since the last reboot on the lower right corner of the screen
@@ -46,14 +48,14 @@ void timer_callback()
 		cursor_p_x = cursor_p_x + printf_int(minute, cursor_p_y, cursor_p_x);
 		cursor_p_x = cursor_p_x + printf_string(":", cursor_p_y, cursor_p_x);
 		cursor_p_x = cursor_p_x + printf_int(second, cursor_p_y, cursor_p_x);
-
+	
+	if(contextSwitch) { 
 			
-		if(firstSwitch) {
-				firstSwitch = false;
+	if(firstSwitchT) {
+				firstSwitchT = false;
 			        page   *pp1=NULL;
         			page   *pp2=NULL;
 
-        int i=0;
         // initialize both the task structures
         // set the address of function1 to the start of the stack of thread1 and same for thread2
         // set the rsp to point to the stack    
@@ -64,11 +66,6 @@ void timer_callback()
         uint64_t *pml4a=(uint64_t *)get_kva(pp1);
         uint64_t *pml4b=(uint64_t *)get_kva(pp2);
 
-
-        for(i=0;i<512;i++) {
-                pml4a[i] = 0;
-                pml4b[i] = 0;
-        }
 
         pml4a[511] = pml4e_table[511]; //point to pdpe of kerne
         pml4b[511] = pml4e_table[511]; //point to pdpe of kerne
@@ -145,11 +142,11 @@ void timer_callback()
 
 		}
 	else {
-	printf("Inside second context switch..!!");
-	int i = 0;
+		printf("Inside second context switch..!!");
+		int i = 0;
 		prev = (task *)&readyQ[i];
-            i = (i + 1) % num_process;
-            next = (task *)&readyQ[i];
+           	i = (i + 1) % num_process;
+            	next = (task *)&readyQ[i];
 		
 	__asm__ __volatile__(
                 "movq %%rsp, %0;"
@@ -188,7 +185,7 @@ void timer_callback()
         );
         __asm__("iretq");
 	}
-	
+	}
 		
  	}
 }

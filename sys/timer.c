@@ -2,7 +2,7 @@
 
 #include <timer.h>
 #include <idt.h>
-#include <stdio.h>
+#include <print.h>
 #include <pic.h>
 #include <common.h>
 #include <process.h>
@@ -16,7 +16,9 @@ int total_time = 0;
 
 bool firstSwitchT = true;
 int num_process = 2;
-bool contextSwitch = true;
+bool contextSwitch = false;
+//static int j = 0;
+static bool stackAdj = false;
 
 
 // Will handle the timer interrupt when the interrupt is fired.
@@ -92,14 +94,14 @@ void timer_callback()
         thread2.stack[60] = 0x1b ;                              // Code Segment
 
         // inilialize the ready queue with both the task structures
-        readyQ[0] = thread1;
-        readyQ[1] = thread2;
+        readyQ[0] = &thread1;
+        readyQ[1] = &thread2;
 	        // __asm__("cli");
         asm volatile("movq %0, %%cr3":: "a"(thread1.cr3));
         // __asm__("sti");
 
 
-        printf("\n I am in process virtual address space \n");
+        kprintf("\n I am in process virtual address space \n");
 
         __asm__ __volatile__ (
             "movq %0, %%rsp;" //load next's stack in rsp
@@ -142,12 +144,14 @@ void timer_callback()
 
 		}
 	else {
-		printf("Inside second context switch..!!");
-		int i = 0;
-		prev = (task *)&readyQ[i];
-           	i = (i + 1) % num_process;
-            	next = (task *)&readyQ[i];
+		//kprintf("Inside second context switch..!!");		
 		
+		
+		static int i = 0;
+		task* prev = readyQ[i];
+           	i = (i + 1) % num_process;
+            	task* next = readyQ[i];
+	
 	__asm__ __volatile__(
                 "movq %%rsp, %0;"
                 :"=m"(prev->rsp)
@@ -180,10 +184,22 @@ void timer_callback()
                 "popq %rdx;" \
                 "popq %rcx;" \
                 "popq %rbx;" \
-                "popq %rax;" \
-                "sti;"
+                "popq %rax;"
         );
-        __asm__("iretq");
+	
+	// stack adjustment
+	if(stackAdj) {
+            asm volatile("addq $0x08,%rsp");
+            asm volatile("popq %rbx");
+            asm volatile("popq %rbx");
+            asm volatile("popq %rbp");
+            asm volatile("popq %r12");
+            asm volatile("popq %r13");
+	}
+	stackAdj = true;	
+
+	__asm__ __volatile__ ("sti");
+        __asm__ __volatile__("iretq");
 	}
 	}
 		

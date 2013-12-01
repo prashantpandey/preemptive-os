@@ -1,6 +1,6 @@
 #include <stdarg.h>
 #include <defs.h>
-#include <stdio.h>
+#include <print.h>
 #include <idt.h>
 #include <pic.h>
 #include <timer.h>
@@ -66,17 +66,17 @@ void lidt() {
 void handler_print_isr() {
 
 	unsigned long isr_num = 0;
-	unsigned long page_fault_add = 0;
+	uint64_t page_fault_add = 0x0;
 	__asm__ __volatile__ ("movq %%rax, %0" : "=r"(isr_num));
 	
 	if(isr_num == 14) {
 		__asm__ __volatile__ ("movq %%cr2, %0" : "=r"(page_fault_add));
-		printf("Page fault occured at this address: %p", page_fault_add);
+		kprintf("Page fault occured at this address: %p", page_fault_add);
 	}
 	
 	else if(isr_num == 128) {
-       		        printf("Inside Yield");
-      schedule();
+       		        kprintf("Inside Yield");
+      			schedule();
       
 	/*
         static int i=0;
@@ -143,10 +143,37 @@ void handler_print_isr() {
 	
 	}
 	else {
-		printf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
+		kprintf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
 	}
 
 	while(1);
+}
+
+void handler_syscall() {
+	//kprint("inside isr 128\n");
+    	uint64_t syscall_no = 0;
+    	char* buf;
+
+    	__asm__(
+            "movq %%rax, %0;"
+            :"=a"(syscall_no)
+            :
+        );
+    	//print("syscall %d\n", syscall_no);
+    	if(syscall_no == 2)
+    	{
+        	__asm__ __volatile__(
+                	"movq %%rbx, %0;"
+                	:"=b"(buf)
+                	:
+                	);
+        	while(*buf != '\0')
+        	{
+            		kprintf("%c", *buf);
+            		buf = buf + 1;
+        	}
+      		//  __asm__("hlt"); 
+    	}	
 }
 
 /* Handles the Interrupt Service Routines(ISRs) when software interrupts are triggered */
@@ -277,11 +304,12 @@ void handler_interrupt_isr14()
 // To handle the ring 3 system calls
 void handler_interrupt_isr128()
 {
+/*
         __asm__ (
               "cli;"
               "movq $128, %rax"
               );
-
+*/
          __asm__(".global x86_64_isr_vector128 \n"\
                         "x86_64_isr_vector128:\n" \
           		"    pushq %rax;" \
@@ -298,7 +326,7 @@ void handler_interrupt_isr128()
                         "    pushq %r13;" \
                         "    pushq %r14;" \
                         "    pushq %r15;" \
-                        "    call handler_print_isr;"\
+                        "    call handler_syscall;"\
                         "    popq %r15;"  \
                         "    popq %r14;"  \
                         "    popq %r13;"  \

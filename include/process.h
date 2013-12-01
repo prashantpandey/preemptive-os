@@ -16,10 +16,10 @@ typedef struct {
 task thread1;
 task thread2;
 
-task* prev;
-task* next;
+//task* prev;
+//task* next;
 //int num_process;
-task readyQ[5];
+task* readyQ[5];
 
 bool flag;
 //bool firstFlag;

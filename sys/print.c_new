@@ -1,11 +1,10 @@
 /*
-The file containing the functions for printf
+The file containing the functions for kprintf
 */
-#include <print.h>
+
+#include <stdio.h>
 #include <stdarg.h>
 #include <paging.h>
-#include <common.h>
-#include <string.h>
 
 #define WHITE_TXT 0x07 // white on black text
 #define VIDMEM (0xb8000 + KERNBASE)  // start address of the video memory
@@ -19,7 +18,6 @@ int cursor_p_y = 0;
  * generic utility functions 
  */
 
-/*
 // Will return the length of the string
 unsigned int strlen(const char *str)
 {
@@ -28,14 +26,6 @@ unsigned int strlen(const char *str)
                 i++;
         return i;
 }
-
-char* strcpy(char *dst, const char *src) {
-	char *ret;
-	ret = dst;
-	while ((*dst++ = *src++) != '\0')
-	return ret;
-}
-*/
 
 // Will set the int array to 0's
 unsigned int int_array_reset(int array[], int cnt)
@@ -117,7 +107,7 @@ void start_scroller()
  */
 
 // Will spit out the character at the given line number
-unsigned int printf_char(char message, unsigned int line, unsigned int column) {
+unsigned int kprintf_char(char message, unsigned int line, unsigned int column) {
         char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
         int initial_p = 0;
@@ -134,7 +124,7 @@ unsigned int printf_char(char message, unsigned int line, unsigned int column) {
 }
 
 // Will spit out the string message at the given line number
-unsigned int printf_string(char *message, unsigned int line, unsigned int column) // the message and then the line #
+unsigned int kprintf_string(char *message, unsigned int line, unsigned int column) // the message and then the line #
 {
         char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
@@ -195,7 +185,6 @@ uint64_t octalToDecimal(uint64_t n)
 	return decimal_equiv;
 }
 
-/*
 int strcmp(char *str1, char *str2)
 {
     if (*str1 < *str2)
@@ -209,10 +198,10 @@ int strcmp(char *str1, char *str2)
  
     return strcmp(str1 + 1, str2 + 1);
 }
-*/
+
 
 // will spit out the integer at the given line number
-unsigned int printf_int(int message, unsigned int line, unsigned int column) // the message and the line #
+unsigned int kprintf_int(int message, unsigned int line, unsigned int column) // the message and the line #
 {
         char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
@@ -246,7 +235,7 @@ unsigned int printf_int(int message, unsigned int line, unsigned int column) // 
 }
 
 // will spit out the integer at the given line number
-unsigned int printf_integer(int message, unsigned int line, unsigned int column, char* str) // the message and the line #
+unsigned int kprintf_integer(int message, unsigned int line, unsigned int column, char* str) // the message and the line #
 {
 //        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
@@ -286,7 +275,7 @@ unsigned int printf_integer(int message, unsigned int line, unsigned int column,
 }
 
 // will spit out the hexadecimal at the given line number
-unsigned int printf_hexadecimal(unsigned long message, unsigned int line, unsigned int column, char* str) // the message and the line #
+unsigned int kprintf_hexadecimal(unsigned long message, unsigned int line, unsigned int column, char* str) // the message and the line #
 {
 //        char *vidmem = (char *) VIDMEM;
         unsigned int i = 0;
@@ -353,7 +342,7 @@ void show_cursor(signed int memory_used)
         {
                 cursor_p_x = cursor_p_x + memory_used;
         }
-        printf_char('_', cursor_p_y, cursor_p_x);
+        kprintf_char('_', cursor_p_y, cursor_p_x);
 }
 
 // Will clear the screen with while on black text
@@ -368,7 +357,7 @@ void clear_screen() // clear the entire text screen
                 vidmem[i] = WHITE_TXT;
                 i++;
         }
-	//printf("%s", "\t\t\tWelcome to SBUnix....!!\n");
+	//kprintf("%s", "\t\t\tWelcome to SBUnix....!!\n");
 	show_cursor(0);
 }
 
@@ -381,8 +370,8 @@ void handle_backspace()
 	vidmem[i++] = ' ';
 	vidmem[i] = WHITE_TXT;
 	
-	cursor_p_x--;
-        printf_char('_', cursor_p_y, cursor_p_x);
+	//cursor_p_x--;
+        //kprintf_char('_', cursor_p_y, cursor_p_x);
 	show_cursor(-1);
 }
 
@@ -442,7 +431,7 @@ int kprintf(const char *fmt, ...)
                                 continue;
                         case 'd':
 				i = 0;
-                                printf_integer(va_arg(args, int), cursor_p_y, cursor_p_x, str_temp);
+                                kprintf_integer(va_arg(args, int), cursor_p_y, cursor_p_x, str_temp);
                                 len = strlen(str_temp);
                                 while(i < len)
 				{
@@ -462,7 +451,7 @@ int kprintf(const char *fmt, ...)
                                 continue;
                         case 'x':
 				i = 0;
-                                printf_hexadecimal(va_arg(args, int), cursor_p_y, cursor_p_x, str_temp);
+                                kprintf_hexadecimal(va_arg(args, int), cursor_p_y, cursor_p_x, str_temp);
                                 len = strlen(str_temp);
                                 while(i < len)
                                 {
@@ -472,7 +461,7 @@ int kprintf(const char *fmt, ...)
                                 continue;
                         case 'p':
 				i = 0;
-                                printf_hexadecimal(va_arg(args, unsigned long), cursor_p_y, cursor_p_x, str_temp);
+                                kprintf_hexadecimal(va_arg(args, unsigned long), cursor_p_y, cursor_p_x, str_temp);
                                 len = strlen(str_temp);
                                 while(i < len)
                                 {
@@ -489,7 +478,7 @@ int kprintf(const char *fmt, ...)
 
         va_end(args);
 
-        str_len = printf_string(str, cursor_p_y, cursor_p_x);
+        str_len = kprintf_string(str, cursor_p_y, cursor_p_x);
         show_cursor(str_len - 1);
 
         return (1);

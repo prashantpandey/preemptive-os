@@ -2,7 +2,7 @@
 #define PAGING_H
 
 #include <defs.h>
-#include <stdio.h>
+#include <print.h>
 #include <mmu.h>
 
 extern uint32_t nframes;
@@ -70,7 +70,7 @@ page *pages;
 static inline void* _paddr(uint64_t kva)
 {
 	if ((uint64_t)kva < (uint64_t)KERNBASE)
-		printf("PADDR called with invalid kva %p", kva);
+		kprintf("PADDR called with invalid kva %p", kva);
 	return (void*)(kva - (uint64_t)KERNBASE);
 }
 
@@ -82,7 +82,7 @@ static inline void* _paddr(uint64_t kva)
 static inline void* _kaddr(uint64_t pa)
 {
 	if (PGNUM(pa) >= nframes)
-		printf("KADDR called with invalid pa %p", pa);
+		kprintf("KADDR called with invalid pa %p", pa);
 	return (void*)(pa + (uint64_t)KERNBASE);
 }
 
@@ -104,7 +104,7 @@ static inline uint64_t page2pa(page *pp)
 static inline page* pa2page(uint64_t pa)
 {
         if (PGNUM(pa) >= nframes)
-                printf("pa2page called with invalid pa");
+                kprintf("pa2page called with invalid pa");
         return &pages[PGNUM(pa)];
 }
 

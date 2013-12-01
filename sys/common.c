@@ -1,5 +1,6 @@
 #include <defs.h>
 #include <common.h>
+#include <print.h>
 
 
 // Writing to the port
@@ -16,12 +17,26 @@ unsigned char inb( unsigned short port )
     return ret;
 }
 
+
+
 // Copy len bytes from src to dest.
-void memcpy(void *dest, void *src, uint32_t len)
+void memcpy(void *dest, void *src, uint32_t n)
 {
-        const uint16_t *sp = (const uint16_t *)src;
-        uint16_t *dp = (uint16_t *)dest;
-        for(; len != 0; len--) *dp++ = *sp++;
+	const char *s;
+        char *d;
+
+        s = src;
+        d = dest;
+        if (s < d && s + n > d) {
+                s += n;
+                d += n;
+                while (n-- > 0)
+                        *--d = *--s;
+        } else
+                while (n-- > 0)
+                        *d++ = *s++;
+
+        //return dest;
 }
 
 void memset(void *dest, uint8_t val, uint32_t len)

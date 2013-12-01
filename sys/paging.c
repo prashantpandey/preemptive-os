@@ -1,6 +1,6 @@
 #include <paging.h>
 #include <mmu.h>
-#include <stdio.h>
+#include <print.h>
 #include <pic.h>
 #include <defs.h>
 #include <common.h>
@@ -35,14 +35,14 @@ void map_physical_address(uint32_t* modulep, void* physbase, void* physfree)
         while(modulep[0] != 0x9001) modulep += modulep[1]+2;
         for(smap = (struct smap_t*)(modulep+2); smap < (struct smap_t*)((char*)modulep+modulep[1]+2*4); ++smap) {
                 if (smap->type == 1 /* memory */ && smap->length != 0) {
-                        //printf("Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
+                        //kprintf("Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
 			if(smap->base == 0) {
                     		npages_basemem = smap->length/PGSIZE;
-                    		//printf("\nLower Memory Pages = %d\n", npages_basemem);
+                    		//kprintf("\nLower Memory Pages = %d\n", npages_basemem);
                 	}
                 	else {
                    		npages_extmem = ((smap->base + smap->length) - (uint64_t)physfree)/PGSIZE;
-                    		//printf("\nHigher Memory Pages = %d\n", npages_extmem);
+                    		//kprintf("\nHigher Memory Pages = %d\n", npages_extmem);
                 	}
 
 			//if(nbase_mem == 0) {
@@ -53,16 +53,16 @@ void map_physical_address(uint32_t* modulep, void* physbase, void* physfree)
 			//}
                 }
 		else {
-                        //printf("Not Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
+                        //kprintf("Not Available Physical Memory [%x-%x]\n", smap->base, smap->base + smap->length);
 		}
         }
 		
-	//printf("%p %p %p\n", physfree, physbase, &kernmem);	
+	//kprintf("%p %p %p\n", physfree, physbase, &kernmem);	
 	// The physical pages are mapped from physfree - limit.
 	nframes = npages_basemem + npages_extmem;
 	
-	//printf("\nNumber of pages %d, %d, %d", nframes, npages_basemem, npages_extmem);
-	//printf("\nNBase %d and NRoof %d", nbase_mem, nroof_mem);
+	//kprintf("\nNumber of pages %d, %d, %d", nframes, npages_basemem, npages_extmem);
+	//kprintf("\nNBase %d and NRoof %d", nbase_mem, nroof_mem);
 	
 	mem_init();
 }
@@ -102,8 +102,8 @@ void page_init()
 {
 	// Creating the page list for all the pages in 128 MB RAM
 	pages = (page*) boot_alloc(sizeof(page) * nframes);
-	//printf("\nPage tables: %p nframe: %d size_page: %d", ((uint64_t)pages - (uint64_t)&kernmem), nframes, sizeof(page));
-	//printf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
+	//kprintf("\nPage tables: %p nframe: %d size_page: %d", ((uint64_t)pages - (uint64_t)&kernmem), nframes, sizeof(page));
+	//kprintf("\nGlobal Next Free: %p", ((uint64_t)global_nextfree - (uint64_t)&kernmem));
 	memset((uint64_t *)pages, 0, (sizeof(page) * nframes));
 	
 	// Will allocate the Page free List
@@ -134,13 +134,13 @@ void page_init()
 
 		pa = page2pa(&pages[i]);    
         	if ((pa == 0 || pa == IOPHYSMEM) && (pages[i].pp_ref==0))
-        		printf("page error: i %d\n", i);	
+        		kprintf("page error: i %d\n", i);	
 	}
 	
-	//printf("\ncount %d", cnt);
+	//kprintf("\ncount %d", cnt);
         page *temp = page_free_list;	
 	for(i = 0; temp != NULL; temp = (page*)temp->pp_link, i++) {}
-	//printf("\nLength of Free List: %d", i); 
+	//kprintf("\nLength of Free List: %d", i); 
 }
 
 // Will allocate a page from the free list
@@ -188,7 +188,7 @@ uint64_t kmalloc(uint32_t size)
 		pp = pp->pp_link;
 	}
 	page_free_list = pp;
-	//printf("Starting address for %d pages is %x ", pages_required, start_address); 
+	//kprintf("Starting address for %d pages is %x ", pages_required, start_address); 
 	return start_address;
 }
 
@@ -199,7 +199,7 @@ uint64_t kmalloc(uint32_t size)
 void page_free(page *pp)
 {
         if(pp->pp_ref == 0) {
-		printf("\nThe page is already free..!!!");
+		kprintf("\nThe page is already free..!!!");
 		while(1);
 	}
         pp->pp_link = page_free_list;
@@ -336,7 +336,7 @@ void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, in
 	{
 		pte = pml4e_walk(pml4e_t, (void *)(va+i), 1);
 		if(!pte) {
-			printf(" Null Boot map segment\n");
+			kprintf(" Null Boot map segment\n");
 			return;
 		}
 		*pte = pa + i;
@@ -356,7 +356,7 @@ void mem_init()
 
 	// initialize the physical pages and free list
 	page_init();
-	//printf("After page init(page_free_list): %p", page_free_list);
+	//kprintf("After page init(page_free_list): %p", page_free_list);
 		
 	// map the kernel space
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, MEM_LIMIT, (uint64_t)lphysbase, PTE_W | PTE_P | PTE_U);
@@ -364,10 +364,10 @@ void mem_init()
 	// map the BIOS/Video memory region	
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P | PTE_U);
 	
-	//printf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
+	//kprintf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		
 	__asm__ __volatile__("mov %0, %%cr3":: "b"(boot_cr3));
-	//printf("Hello Pagination done.%p", boot_cr3);	
+	//kprintf("Hello Pagination done.%p", boot_cr3);	
 }
 
 void invalidate_tlb(uint64_t addr) {
@@ -409,7 +409,7 @@ uint32_t page_insert(pml4e* pml4e_t, page* pp, uint64_t va, int perm) {
 	if(*pte_t & PTE_P) {
 		page_remove(pml4e_t, va);
 	}
-	*pte_t = ((uint64_t)page2pa(pp)) | perm | PTE_P | PTE_U;
+	*pte_t = ((uint64_t)page2pa(pp)) | perm | PTE_P | PTE_U | PTE_W;
 	return 0;
 }
 

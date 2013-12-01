@@ -1,6 +1,6 @@
 #include <process.h>
 #include <defs.h>
-#include <stdio.h>
+#include <print.h>
 #include <paging.h>
 #include <sys/gdt.h>
 #include <sys/tarfs.h>
@@ -41,6 +41,9 @@ void createProcess(void* function) {
 	process.pid = ids++;
 	process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);		// init cr3
 	process.pml4e_p = pml4e_p;
+
+
+        load_icode(&process, "bin/hello1", 0);	
 	
 	process.stack[59] = (uint64_t)function;
         process.rsp = (uint64_t)&process.stack[45];
@@ -79,7 +82,7 @@ void initContextSwitch() {
 	task pr = currProcess->process;
 
 	__asm__ __volatile__("movq %0, %%cr3":: "a"(pr.cr3));		// load the cr3 reg with the cr3 of process
-	printf("I am in process virtual address space \n");
+	// kprintf("I am in process virtual address space \n");
 	
 	__asm__ __volatile__ (						
             "movq %0, %%rsp;" //load next's stack in rsp
@@ -196,7 +199,8 @@ void initThreads() {
         pml4a[511] = pml4e_table[511]; //point to pdpe of kernel
         pml4b[511] = pml4e_table[511]; //point to pdpe of kernel
 
-        thread1.cr3 = (uint64_t)PADDR((uint64_t)pml4a);
+        // inilialize 
+	thread1.cr3 = (uint64_t)PADDR((uint64_t)pml4a);
 	thread1.pml4e_p = (pml4e*)pml4a;
         thread2.cr3 = (uint64_t)PADDR((uint64_t)pml4b);	
 	thread2.pml4e_p = (pml4e*)pml4b;
@@ -222,9 +226,9 @@ void initThreads() {
         thread2.stack[61] = 0x246;                           //  EFlags
         thread2.stack[60] = 0x1b ;                              // Code Segment
 
-        // inilialize the ready queue with both the task structures
-        readyQ[0] = thread1;
-        readyQ[1] = thread2;
+	// inilialize the ready queue with both the task structures
+        readyQ[0] = &thread1;
+        readyQ[1] = &thread2;
 
 	// initialize flags	
 	firstSwitch = true;
@@ -245,7 +249,7 @@ void first_context_switch()
    	// __asm__("sti");
         
 
-    	printf("I am in process virtual address space \n");
+    	// kprintf("I am in process virtual address space \n");
 
     	__asm__ __volatile__ (
             "movq %0, %%rsp;" //load next's stack in rsp
@@ -342,7 +346,7 @@ void schedule() {
     	// will halt the currently executing thread
     	// will pop the next task from the ready queue
     	// call switch_to function with prev and next task
-        //printf("In schedule%s %s", firstSwitch, flag);	
+        //kprintf("In schedule%s %s", firstSwitch, flag);	
 	if(firstSwitch) {
 		firstSwitch = false;
 		first_context_switch();
@@ -350,11 +354,11 @@ void schedule() {
 	else {
 		if(flag) {
                 	flag = false;
-                	switch_to(&readyQ[0], &readyQ[1]);
+                	switch_to(readyQ[0], readyQ[1]);
         	}
         	else {
                 	flag = true;
-                	switch_to(&readyQ[1], &readyQ[0]);
+                	switch_to(readyQ[1], readyQ[0]);
         	}
 	}
 }
@@ -365,22 +369,24 @@ void function1() {
 	// to call the hardware originated divide by zero interrupt
 		//__asm__("int %0\n" : : "N"((arg)) : "cc", "memory");
 		//uint64_t *a = 0x0ul; int b = *a;
-		//printf("%d",b);
+		//kprintf("%d",b);
 
-	printf("\nHello");    		
+	kprintf("\nHello");    		
 	while(1) {
 		static int i = 0;
-        	printf("\nHello inside while: %d", i++);
+		if(i++ == 0)
+        	 	kprintf("\nHello inside while: %d", i++);
         	//schedule();
         	//yield();
    	}
 }
 
 void function2() {
-	printf("\nWorld..!!");
+	kprintf("\nWorld..!!");
     	while(1) {
 		static int i = 0;
-        	printf("World..!! inside while: %d", i++);
+		if(i++ == 0)
+        		kprintf("World..!! inside while: %d", i++);
         	//schedule();
         	//yield();
    	}
@@ -391,12 +397,13 @@ static void region_alloc(task* t, void* va, uint32_t len) {
     	uint64_t va_end = PAGE_ROUNDOFF((uint64_t)va+len, PGSIZE);
     	page* p;
     	uint64_t v;
-    	for (v = va_start; v < va_end; v += PGSIZE) {
+    	//kprintf("Starting va %p\n Ending va %p",va_start,va_end);
+	for(v = va_start; v < va_end; v += PGSIZE) {
         	if (!(p = page_alloc(ALLOC_ZERO)))
-            		printf("Running out of memory\n");
+            		kprintf("Running out of memory\n");
         	else {
             		if (page_insert((pml4e *) t->pml4e_p, p,(uint64_t) v, PTE_P | PTE_U | PTE_W) != 0)
-                	printf("Running out of memory\n");
+                	kprintf("Running out of memory\n");
         	}
     	}
 }
@@ -406,9 +413,10 @@ static void load_icode(task* t, char* filename, uint32_t size) {
 	uint64_t offset = is_file_exists(filename);
  
     	if(offset == 0 || offset == 999) {
-        	printf("\n Error. File not found in tarfs.");
+        	kprintf("\n Error. File not found in tarfs.");
         	offset = 0;
-    	} else {
+    	} 
+	else {
         	Elf_hdr *elf = (Elf_hdr *) (&_binary_tarfs_start + offset);
  
         	Elf64_Phdr *ph, *eph;
@@ -423,11 +431,12 @@ static void load_icode(task* t, char* filename, uint32_t size) {
         	        	// uint64_t offset = ph->p_offset;
                 		// uint64_t i = 0;
                 		if(ph->p_filesz > ph->p_memsz) {
-                    			printf("Wrong size in elf binary\n");
+                    			// kprintf("Wrong size in elf binary\n");
 				}
-        	        	printf("\n vaddr : %x size %x", ph->p_vaddr, ph->p_memsz);
+        	        	// kprintf("\n vaddr : %x size %x", ph->p_vaddr, ph->p_memsz);
  	
         	        	region_alloc(t, (void*) ph->p_vaddr, ph->p_memsz);
+				// kprintf("Allocated region for load_icode va");
                 		// Switch to env's address space so that we can use memcpy
                 		lcr3(t->cr3);
 	                	memcpy((char*) ph->p_vaddr, (void *) elf + ph->p_offset, ph->p_filesz);
@@ -449,5 +458,4 @@ static void load_icode(task* t, char* filename, uint32_t size) {
         	t->entry = elf->e_entry;
     	}
 }
-
 

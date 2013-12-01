@@ -4,7 +4,7 @@
 #include <defs.h>
 #include <stdarg.h>
 #include <sys/gdt.h>
-#include <stdio.h>
+#include <print.h>
 #include <idt.h>
 #include <pic.h>
 #include <timer.h>
@@ -14,7 +14,7 @@
 #include <sys/tarfs.h>
 
 void print_hello_world() {
-	printf("\nHello World..!!");
+	kprintf("\nHello World..!!");
 }
 
 void start(uint32_t* modulep, void* physbase, void* physfree)
@@ -35,24 +35,24 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
         pic_remap(0x20, 0x28);
 
 	// initialize threads
-	initThreads();	
+	// initThreads();	
 
 	// Will initialize the timer interrupt
-        init_timer(100);
+        // init_timer(100);
 
 	// uint64_t message = stoi("023323232");	
-	// printf("\n String to integer check: %d", message);
+	// kprintf("\n String to integer check: %d", message);
 	
 	// uint64_t decimal = octalToDecimal(232);
-	// printf("\nOctal 232 to decimal is: %d", decimal);
+	// kprintf("\nOctal 232 to decimal is: %d", decimal);
 
 	// int res = strcmp("HELLO","dsjhfkdhfkjhfjkshfd");
-	// printf("\nComparing two strings: %d", res);
+	// kprintf("\nComparing two strings: %d", res);
 
 	//get_file_sections("/bin/hello/hello.o");
 	
 	// calling the first context switch
-	// first_context_switch();
+	first_context_switch();
 	
 	while(1);
 }
@@ -101,12 +101,12 @@ void boot(void)
 // code snippet to invoke the divide-by-zero interrupt
 //      int a = 5;
 //      int b = 5;
-//      printf("%d", (a/(a-b)));
+//      kprintf("%d", (a/(a-b)));
 
 //      int a = 32;
-//      printf("%p ", &a);
+//      kprintf("%p ", &a);
 //      int *b = &a;
-//      printf(" %d", *b);
+//      kprintf(" %d", *b);
 
         while(1);
 }

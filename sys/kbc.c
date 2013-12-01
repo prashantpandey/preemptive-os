@@ -1,7 +1,7 @@
 /* File containing functions to handle Keyboard Interrupts */
 
 #include <defs.h>
-#include <stdio.h>
+#include <print.h>
 #include <pic.h>
 #include <common.h>
 
@@ -97,19 +97,19 @@ void keyboard_handler()
 		}		
 		else if(flag == 0 && ((int)(scancode)) != 42) 	// Will check for case when shift key is not pressed
 		{
-			printf("%c", kbdus[scancode]);
+			kprintf("%c", kbdus[scancode]);
 			printf_char(kbdus[scancode], cursor_p_y, cursor_p_x + len);
 		}		
 		else if(flag == 1 && ((int) scancode) < 12)	//Will check if shift key is pressed along with numbers
 		{
-			printf("%c", special_char[scancode]);
+			kprintf("%c", special_char[scancode]);
 			printf_char(special_char[scancode], cursor_p_y, cursor_p_x + len);
 			flag = 0;
 		}
 		else if(flag == 1) 				//Will check if shift key is pressed along with alphabets
 		{
 			int code = (((int) (kbdus[scancode])) - 32);	
-			printf("%c", code);
+			kprintf("%c", code);
 			printf_char(code, cursor_p_y, cursor_p_x + len);
 			flag = 0;
 		}

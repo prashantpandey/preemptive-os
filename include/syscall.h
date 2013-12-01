@@ -6,7 +6,7 @@
 #define SYSCALL_PROTO(n) static __inline uint64_t __syscall##n
 #define T_SYSCALL   128
 
-
+/*
 static __inline uint64_t __syscall0(uint64_t n) {
 	uint64_t res;
    	__asm__ volatile ("int %1"\
@@ -21,9 +21,10 @@ static __inline uint64_t __syscall1(uint64_t n, uint64_t a1) {
      	__asm__ volatile ("int %1"\
                    :"=a"(res)\
                    :"i"(T_SYSCALL),"0"(n),"b"((uint64_t)(a1))\
-                   :"cc","memory");
-  	return res;
+                   :"cc","memory", "%rax", "%rbx");
+	return 0;
 }
+
 
 static __inline uint64_t __syscall2(uint64_t n, uint64_t a1, uint64_t a2) {
     	uint64_t res;
@@ -51,8 +52,8 @@ static __inline uint64_t __syscall4(uint64_t n, uint64_t a1, uint64_t a2, uint64
                     :"cc","memory");
     	return res;
 }
+*/
 
-/*
 SYSCALL_PROTO(0)(uint64_t n) {
 	uint64_t res;
     	__asm__ volatile ("int %1"\
@@ -97,5 +98,5 @@ SYSCALL_PROTO(4)(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4)
                     :"cc","memory");
     return res;
 }
-*/
+
 #endif

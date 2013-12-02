@@ -5,6 +5,9 @@
 #include <pic.h>
 #include <common.h>
 
+char kbip = '\0';
+bool scanFlag = false;
+
 // global declaration of flag
 static unsigned int flag = 0;
 
@@ -90,6 +93,7 @@ void keyboard_handler()
 		if(flag == 0 && ((int)(scancode)) == 28)
 		{
 			handle_enter();
+			scanFlag = true;		
 		}
 		else if(flag == 0 && ((int)(scancode)) == 14)
 		{
@@ -97,11 +101,13 @@ void keyboard_handler()
 		}		
 		else if(flag == 0 && ((int)(scancode)) != 42) 	// Will check for case when shift key is not pressed
 		{
+			kbip = kbdus[scancode];
 			kprintf("%c", kbdus[scancode]);
 			printf_char(kbdus[scancode], cursor_p_y, cursor_p_x + len);
 		}		
 		else if(flag == 1 && ((int) scancode) < 12)	//Will check if shift key is pressed along with numbers
 		{
+			kbip = special_char[scancode];
 			kprintf("%c", special_char[scancode]);
 			printf_char(special_char[scancode], cursor_p_y, cursor_p_x + len);
 			flag = 0;
@@ -109,6 +115,7 @@ void keyboard_handler()
 		else if(flag == 1) 				//Will check if shift key is pressed along with alphabets
 		{
 			int code = (((int) (kbdus[scancode])) - 32);	
+			kbip = code;
 			kprintf("%c", code);
 			printf_char(code, cursor_p_y, cursor_p_x + len);
 			flag = 0;
@@ -123,4 +130,55 @@ void keyboard_handler()
 }
 
 
-
+int kscanf(const char* fmt, void* var) {
+	//char str[1024];	
+	//int i = 0;
+	
+	// memset(str, 0, 1024);
+	// scanFlag = false;
+	
+	//int* p_int;
+	kprintf("Reaching");		
+	if(*(++fmt) == 'c') {
+		kprintf("Inside if");
+		char p_char = kbip;
+                var = (void*) &p_char;
+	}
+	kprintf("exit");
+	/*
+	switch(*fmt)
+	{
+		case 'c':
+			*p_char = kbip;
+			var = (void*) p_char; 			
+			break;
+		case 'd':
+			if(!scanFlag) {
+				str[i++] = kbip;
+			}
+			else {
+				str[i++] = '\n';
+				scanFlag = true;
+				*p_int = stoi(str);
+				var = (void*) p_int;
+			}
+			break;
+		case 's':
+			if(!scanFlag) {
+                                str[i++] = kbip;
+                        }
+                        else {
+                                str[i++] = '\n';
+                                scanFlag = true;
+                                var = (void*)str;
+                        }
+			break;
+		case 'x':
+			break;
+		default:
+			kprintf("Invalid scanf argument..!!");
+			break;
+	}
+	*/
+	return 0;
+}

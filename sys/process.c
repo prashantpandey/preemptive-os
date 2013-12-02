@@ -389,36 +389,38 @@ void function1() {
 
 	kprintf("\nHello");    		
 	while(1) {
-		//static int i = 0;
-		//if(i++ == 0)
-        	 	//kprintf("\nHello inside while: %d", i++);
+		static int i = 0;
+		i++;
+		//if(i == 0)
+        	 //	kprintf("\nHello inside while: %d", i++);
         	//switchProcess();
 		//schedule();
-        	yield();
+        	// yield();
    	}
 }
 
 void function2() {
 	kprintf("\nWorld..!!");
     	while(1) {
-		//static int i = 0;
+		static int i = 0;
+		i++;
 		//if(i++ == 0)
         	//	kprintf("World..!! inside while: %d", i++);
         	//switchProcess();
 		//schedule();
-        	yield();
+        	//yield();
    	}
 }
 
 // Add the given number of pages from va to the pml4e of the curr process 
 void addPagesMalloc(void* va, int num) {
-        uint64_t v;
+        //uint64_t v;
         //kprintf("Starting va %p\n Ending va %p",va_start,va_end);
         int i = 0;
 	for(;i < num; i++, va += PGSIZE) {
-        	if (page_insert((pml4e *) currProcess->process.pml4e_p, (uint64_t)PADDR((uint64_t)va) ,(uint64_t) va, PTE_P | PTE_U | PTE_W) != 0) {
-                 	kprintf("Running out of memory\n");
-                }
+        	//if (page_insert((pml4e *) currProcess->process.pml4e_p, (uint64_t)PADDR((uint64_t)va) ,(uint64_t) va, PTE_P | PTE_U | PTE_W) != 0) {
+                // 	kprintf("Running out of memory\n");
+                //}
         }
 }
 

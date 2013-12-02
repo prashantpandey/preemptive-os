@@ -14,11 +14,22 @@ static uint32_t ids = 0;
 extern pml4e *pml4e_table;
 extern uint64_t boot_cr3;
 
+static task kernalProcess;
 runQueue* currProcess;
 bool firstSwitch = true;
 
 void function1();
 void function2();
+
+// Will return the pid of the process
+int getPid() {
+	return currProcess->process.pid;
+}
+
+// Will return load the kernel process after the exit call
+void returnToKernel() {
+	// TODO:
+}
 
 // To fetch the kernel virtual address
 void* get_kva(page *pp)
@@ -32,46 +43,51 @@ void* get_kva(page *pp)
 
 // Will create a circular linked list for process in the run queue
 void createProcess(void* function) {
+	runQueue* newPr = (runQueue *)get_kva(page_alloc(0));
+
 	// create the process structure
-	task process;
 	page* pp = page_alloc(0);
 	uint64_t* pml4e_p = (uint64_t* )get_kva(pp);			// initiaize the memory str for process
 	pml4e_p[511] = pml4e_table[511];			// copy the kernel address space in process VM
 	
-	process.pid = ids++;
-	process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);		// init cr3
-	process.pml4e_p = pml4e_p;
+	newPr->process.pid = ids++;
+	newPr->process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);		// init cr3
+	newPr->process.pml4e_p = pml4e_p;
 
-
-        load_icode(&process, "bin/hello1", 0);	
+        //load_icode(&process, "bin/hello1", 0);	
 	
-	process.stack[59] = (uint64_t)function;
-        process.rsp = (uint64_t)&process.stack[45];
+	newPr->process.stack[59] = (uint64_t)function;
+        newPr->process.rsp = (uint64_t)&newPr->process.stack[45];
 
-        process.stack[63] = 0x23 ;                              //  Data Segment    
-        process.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
-        process.stack[61] = 0x246;                           //  EFlags
-        process.stack[60] = 0x1b ;                              // Code Segment
+        newPr->process.stack[63] = 0x23 ;                              //  Data Segment    
+        newPr->process.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
+        newPr->process.stack[61] = 0x246;                           //  EFlags
+        newPr->process.stack[60] = 0x1b ;                              // Code Segment
 		
 	if(ids == 1) {
-		runQ->process = process;
+		runQ = newPr;
 		runQ->next = runQ;
 	}	
 	else {
-		runQueue* newProcess = NULL;
-		newProcess->process = process;
-		newProcess->next = runQ;
-		
 		runQueue* temp = runQ;
-		while(temp->next != NULL) {
+		int i = 0;
+		while(i < ids - 1) {
 			temp = temp->next;
+			i++;
 		}
-		temp->next = newProcess;
+		temp->next = newPr;
+		newPr->next = runQ;
 	}
 }
 
 // Will switch to first process in the run Queue
 void initContextSwitch() {
+	
+	// create kernal
+	kernalProcess.pid = ids++;
+	kernalProcess.cr3 = boot_cr3;
+	kernalProcess.pml4e_p = pml4e_table;
+		
 	// create two user space process
 	createProcess(&function1);
 	createProcess(&function2);
@@ -123,7 +139,7 @@ void switchProcess() {
 	}
 	else {
 		// code commented because the push operation is done from the timer interrupt handler
-        	/*			
+		/*        				
 		__asm__ __volatile__ (
         		"pushq %rax;"\
         		"pushq %rbx;"\
@@ -150,17 +166,17 @@ void switchProcess() {
     			
 		currProcess = currProcess->next;			// move the curr Process to the next process in runQ
 		
-		task next = currProcess->process;
-		asm volatile("movq %0, %%cr3":: "a"(next.cr3));	
+		//task next = currProcess->process;
+		asm volatile("movq %0, %%cr3":: "a"(currProcess->process.cr3));	
     	
 		__asm__ __volatile__ (
             		"movq %0, %%rsp;"
             		:
-            		:"m"(next.rsp)
+            		:"m"(currProcess->process.rsp)
             		:"memory"
         	);
 		
-		tss.rsp0 = (uint64_t)next.stack[63];
+		tss.rsp0 = (uint64_t)currProcess->process.stack[63];
         
 		__asm__ __volatile__("popq %r15");
 		__asm__ __volatile__("popq %r14");
@@ -373,25 +389,40 @@ void function1() {
 
 	kprintf("\nHello");    		
 	while(1) {
-		static int i = 0;
-		if(i++ == 0)
-        	 	kprintf("\nHello inside while: %d", i++);
-        	//schedule();
-        	//yield();
+		//static int i = 0;
+		//if(i++ == 0)
+        	 	//kprintf("\nHello inside while: %d", i++);
+        	//switchProcess();
+		//schedule();
+        	yield();
    	}
 }
 
 void function2() {
 	kprintf("\nWorld..!!");
     	while(1) {
-		static int i = 0;
-		if(i++ == 0)
-        		kprintf("World..!! inside while: %d", i++);
-        	//schedule();
-        	//yield();
+		//static int i = 0;
+		//if(i++ == 0)
+        	//	kprintf("World..!! inside while: %d", i++);
+        	//switchProcess();
+		//schedule();
+        	yield();
    	}
 }
 
+// Add the given number of pages from va to the pml4e of the curr process 
+void addPagesMalloc(void* va, int num) {
+        uint64_t v;
+        //kprintf("Starting va %p\n Ending va %p",va_start,va_end);
+        int i = 0;
+	for(;i < num; i++, va += PGSIZE) {
+        	if (page_insert((pml4e *) currProcess->process.pml4e_p, (uint64_t)PADDR((uint64_t)va) ,(uint64_t) va, PTE_P | PTE_U | PTE_W) != 0) {
+                 	kprintf("Running out of memory\n");
+                }
+        }
+}
+
+// Will allocate a region for the user program
 static void region_alloc(task* t, void* va, uint32_t len) {
 	uint64_t va_start = PAGE_ROUNDOFF((uint64_t)va, PGSIZE);
     	uint64_t va_end = PAGE_ROUNDOFF((uint64_t)va+len, PGSIZE);
@@ -408,8 +439,8 @@ static void region_alloc(task* t, void* va, uint32_t len) {
     	}
 }
 
+// Will load the user program header through tarfs
 static void load_icode(task* t, char* filename, uint32_t size) {
-	
 	uint64_t offset = is_file_exists(filename);
  
     	if(offset == 0 || offset == 999) {
@@ -418,18 +449,12 @@ static void load_icode(task* t, char* filename, uint32_t size) {
     	} 
 	else {
         	Elf_hdr *elf = (Elf_hdr *) (&_binary_tarfs_start + offset);
- 
         	Elf64_Phdr *ph, *eph;
         	ph = (Elf64_Phdr *) ((uint8_t *) elf + elf->e_phoff);
- 
         	eph = ph + elf->e_phnum;
  
         	for(; ph < eph; ph++) {
             		if(ph->p_type == ELF_PROG_LOAD) {
-                		// uint64_t va = ph->p_vaddr;
-	                	// uint64_t size = ph->p_memsz;
-        	        	// uint64_t offset = ph->p_offset;
-                		// uint64_t i = 0;
                 		if(ph->p_filesz > ph->p_memsz) {
                     			// kprintf("Wrong size in elf binary\n");
 				}

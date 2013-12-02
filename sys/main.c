@@ -53,6 +53,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	
 	// calling the first context switch
 	first_context_switch();
+	// initContextSwitch();
 	
 	while(1);
 }

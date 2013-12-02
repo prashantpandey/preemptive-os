@@ -10,7 +10,8 @@ typedef struct {
 	uint64_t rsp;			// stack pointer
 	uint64_t cr3;			// current value of CR3 register for process switch
 	pml4e* pml4e_p;
-	uint64_t entry;	
+	uint64_t entry;			// user funciton entry point	
+	uint32_t state;			// 0: ready, 1: wait, 2: sleep
 } task;
 
 task thread1;
@@ -32,8 +33,14 @@ typedef struct runQueue runQueue;
 
 runQueue* runQ;
 
+
+int getPid();
+void initContextSwitch();
+void switchProcess();
 void * get_kva(page *pp);
 void first_context_switch();
+void addPagesMalloc(void* va, int num);
+
 void schedule();
 void switch_to(task* prev, task* next);
 void initThreads();

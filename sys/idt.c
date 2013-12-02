@@ -150,18 +150,23 @@ void handler_print_isr() {
 }
 
 void handler_syscall() {
+	// kprintf("Inside Yield");
+	// switchProcess();			// to handler the yield system call
+	
 	//kprint("inside isr 128\n");
     	uint64_t syscall_no = 0;
-    	char* buf;
 
     	__asm__(
             "movq %%rax, %0;"
             :"=a"(syscall_no)
             :
         );
-    	//print("syscall %d\n", syscall_no);
-    	if(syscall_no == 2)
-    	{
+    	// kprint("syscall %d\n", syscall_no);
+	if(syscall_no == 1) {						// scanf
+		// TODO: implement scanf sys call
+	}
+    	else if(syscall_no == 2) {					// printf
+    		char* buf;
         	__asm__ __volatile__(
                 	"movq %%rbx, %0;"
                 	:"=b"(buf)
@@ -173,7 +178,54 @@ void handler_syscall() {
             		buf = buf + 1;
         	}
       		//  __asm__("hlt"); 
-    	}	
+    	}
+	else if(syscall_no == 3) {					// malloc
+		uint64_t size;
+		__asm__ __volatile__(
+                        "movq %%rbx, %0;"
+                        :"=b"(size)
+                        :
+                        );
+		uint64_t returnAddr = kmalloc((uint32_t)size);
+		int num = 0;
+		if((size % 4096) != 0) {
+			num = (size / 4096) + 1;
+		}
+		else {
+			num = (size / 4096);
+		}
+		addPagesMalloc((void*)returnAddr, num);
+		__asm__ __volatile__(
+			"movq %0, %%rax;"
+			:
+			:"a" ((uint64_t)returnAddr)
+			:"cc", "memory"
+			);		
+	}
+	else if(syscall_no == 4) {					// getPid
+		int pid = getPid();
+		__asm__ __volatile__(
+                        "movq %0, %%rax;"
+                        :
+                        :"a" ((uint64_t)pid)
+                        :"cc", "memory"
+                        );	
+	}
+	else if(syscall_no == 5) {					// exit 
+		// TODO: exit system call
+	}
+	else if(syscall_no == 6) {					// fork
+		// TODO: fork system call
+	}
+	else if(syscall_no == 7) {					// execvpe
+		// TODO: execvpe system call
+	}
+	else if(syscall_no == 8) {					// sleep
+		// TODO: sleep system call
+	}
+	else if(syscall_no == 9) {					// wait
+		// TODO: wait system call
+	}
 }
 
 /* Handles the Interrupt Service Routines(ISRs) when software interrupts are triggered */
@@ -312,7 +364,6 @@ void handler_interrupt_isr128()
 */
          __asm__(".global x86_64_isr_vector128 \n"\
                         "x86_64_isr_vector128:\n" \
-          		"    pushq %rax;" \
                         "    pushq %rbx;" \
                         "    pushq %rcx;" \
                         "    pushq %rdx;" \
@@ -340,7 +391,6 @@ void handler_interrupt_isr128()
                         "    popq %rdx;" \
                         "    popq %rcx;" \
                         "    popq %rbx;" \
-                        "    popq %rax;" \
 		"iretq;");
 }
 

@@ -168,12 +168,12 @@ uint64_t kmalloc(uint32_t size)
 	if (temp_size < PGSIZE)
 		pages_required = 1;
 	else
-		{
+	{
 		pages_required = temp_size/PGSIZE;
 		temp_size -= (pages_required*PGSIZE);
 		if (temp_size >0)
 			pages_required++;
-		}
+	}
 	// Getting the pages allocated	
         if (!page_free_list)
                 return NULL;
@@ -181,7 +181,7 @@ uint64_t kmalloc(uint32_t size)
 	pp = page_free_list;
 	start_address =(uint64_t) pp;
 
-	for(i = 0; i< pages_required; i++)
+	for(i = 0; i < pages_required; i++)
 	{	
 		pp->pp_ref++;
 		memset(page2kva((void*)pp), 0, PGSIZE);

@@ -4,10 +4,13 @@
 #include <print.h>
 #include <pic.h>
 #include <common.h>
+#include <string.h>
 
-char kbip = '\0';
-bool scanFlag = false;
-
+char kbip[100];
+int kbip_count = 0;
+volatile bool scanFlag = false;
+bool kb_interrupt = false;
+char input_char = ' ';
 // global declaration of flag
 static unsigned int flag = 0;
 
@@ -61,9 +64,9 @@ void keyboard_handler()
 	int cursor_p_x = 8;
         int cursor_p_y = 24;
 	int len = 0;
-
-
-    	/* Read from the keyboard's data buffer */
+	kb_interrupt = true;
+	//char input_char = ' ';
+	/* Read from the keyboard's data buffer */
     	scancode = inb(0x60);
 
     	/* If the top bit of the byte we read from the keyboard is
@@ -92,8 +95,12 @@ void keyboard_handler()
 		
 		if(flag == 0 && ((int)(scancode)) == 28)
 		{
+					
 			handle_enter();
-			scanFlag = true;		
+			input_char = kbdus[scancode];
+		//	if(input_char == '\n')
+			scanFlag = false;	
+			
 		}
 		else if(flag == 0 && ((int)(scancode)) == 14)
 		{
@@ -101,13 +108,13 @@ void keyboard_handler()
 		}		
 		else if(flag == 0 && ((int)(scancode)) != 42) 	// Will check for case when shift key is not pressed
 		{
-			kbip = kbdus[scancode];
+			input_char = kbdus[scancode];
 			kprintf("%c", kbdus[scancode]);
 			printf_char(kbdus[scancode], cursor_p_y, cursor_p_x + len);
 		}		
 		else if(flag == 1 && ((int) scancode) < 12)	//Will check if shift key is pressed along with numbers
 		{
-			kbip = special_char[scancode];
+			input_char =  special_char[scancode];
 			kprintf("%c", special_char[scancode]);
 			printf_char(special_char[scancode], cursor_p_y, cursor_p_x + len);
 			flag = 0;
@@ -115,7 +122,7 @@ void keyboard_handler()
 		else if(flag == 1) 				//Will check if shift key is pressed along with alphabets
 		{
 			int code = (((int) (kbdus[scancode])) - 32);	
-			kbip = code;
+			input_char = code;
 			kprintf("%c", code);
 			printf_char(code, cursor_p_y, cursor_p_x + len);
 			flag = 0;
@@ -124,8 +131,13 @@ void keyboard_handler()
 			flag = 1;	
 		}
 
+		if(scanFlag == true && input_char!='\n')
+			{
+			kbip[kbip_count++] = input_char;
+			//kprintf("%c",input_char);
+			}
     	}
-	
+	//kprintf("\n%c", *kbip);
 	outb(0x20, 0x20);
 }
 
@@ -133,11 +145,38 @@ void keyboard_handler()
 int kscanf(const char* fmt, void* var) {
 	//char str[1024];	
 	//int i = 0;
+//	char in_scanf;
+	//int i = 0;
+	scanFlag = true;
+	while(1)
+	{
 	
-	// memset(str, 0, 1024);
+		if(scanFlag == false)
+		{
+		//	kprintf("Reaching here");
+			kprintf("\n %c", *kbip);
+			
+		//	var =  strcpy((char*) var, kbip);
+		//	kprintf("%c",*var);
+		//	for(i=0;i<kbip_count;i++)
+		//		kprintf("%c",kbip[i]);	
+			break;
+		}
+	}
+//	while(kb_interrupt == true && scanFlag == true)
+//	{
+	//	var =  strcpy((char*) var, input_char);
+//		*in_scanf++ = input_char;
+	
+//		kprintf("Scanning input finished");
+//		kprintf("%s",in_scanf);
+//	}
+		//memset(kbip, 0, 100);
+//		}
 	// scanFlag = false;
 	
 	//int* p_int;
+	/*
 	kprintf("Reaching");		
 	if(*(++fmt) == 'c') {
 		kprintf("Inside if");
@@ -145,6 +184,7 @@ int kscanf(const char* fmt, void* var) {
                 var = (void*) &p_char;
 	}
 	kprintf("exit");
+	*/
 	/*
 	switch(*fmt)
 	{
@@ -180,5 +220,6 @@ int kscanf(const char* fmt, void* var) {
 			break;
 	}
 	*/
+
 	return 0;
 }

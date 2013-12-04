@@ -6,13 +6,24 @@
 #include <common.h>
 #include <string.h>
 
-char kbip[100];
-int kbip_count = 0;
-volatile bool scanFlag = false;
-bool kb_interrupt = false;
-char input_char = ' ';
+char kbip[1024];			// Saves Keyboard input
+int kbip_count = 0;			// No. of characters entered
+volatile bool scanFlag = false;		// Tracks kscanf function call
+bool kb_interrupt = false;		// Checks if keyboard interrupt has occured 
+char input_char = ' ';			// Saves a single keyboard character
 // global declaration of flag
 static unsigned int flag = 0;
+
+// Reset the keyboard input character array
+void kbip_reset()
+{
+	int i = 0;
+	for(i = 0;i<1024;i++)
+	{
+		kbip[i]='\0';
+	}
+}
+
 
 /* Scan code mapping to US Layout keyboard */
 unsigned char kbdus[128] =
@@ -98,7 +109,8 @@ void keyboard_handler()
 					
 			handle_enter();
 			input_char = kbdus[scancode];
-		//	if(input_char == '\n')
+		
+			// Set ScanFlag as false since enter has been encountered
 			scanFlag = false;	
 			
 		}
@@ -130,37 +142,61 @@ void keyboard_handler()
 		else if(((int)(scancode)) == 42) {		//Will check for shift key press and set the flag to 1
 			flag = 1;	
 		}
-
+	
+		// Buffers input characters if kscanf is called and entered character is not new line
 		if(scanFlag == true && input_char!='\n')
 			{
 			kbip[kbip_count++] = input_char;
-			//kprintf("%c",input_char);
 			}
     	}
-	//kprintf("\n%c", *kbip);
 	outb(0x20, 0x20);
 }
 
 
-int kscanf(const char* fmt, void* var) {
-	//char str[1024];	
-	//int i = 0;
-//	char in_scanf;
-	//int i = 0;
+int kscanf(const char* fmt, char* var) {
+	
+	int i = 0;
 	scanFlag = true;
+	fmt++;
+
 	while(1)
 	{
 	
 		if(scanFlag == false)
 		{
+			kprintf("\n %d\n", kbip_count);
 		//	kprintf("Reaching here");
-			kprintf("\n %c", *kbip);
-			
-		//	var =  strcpy((char*) var, kbip);
-		//	kprintf("%c",*var);
-		//	for(i=0;i<kbip_count;i++)
-		//		kprintf("%c",kbip[i]);	
-			break;
+		//	kprintf("\n %c", *kbip);
+			switch(*fmt)
+			{	
+			case 'c':
+					*var++ = kbip[0];
+					*var++ = '\0';
+					break;
+			case 's':
+					for (i = 0; i< kbip_count;i++)
+					{
+						*var++ = kbip[i];
+						kprintf("%c", kbip[i]);
+					}
+					*var++ = '\0';
+					break;
+			case 'd':
+	
+					for (i = 0; i< kbip_count;i++)
+					{
+						*var++ = kbip[i];
+						kprintf("%c", kbip[i]);
+					}
+					*var++ = '\0';
+					int result = stoi(var);
+					kprintf("%d",result);
+					break;
+			default:	
+					break;
+			}
+			kbip_reset();
+		break;
 		}
 	}
 //	while(kb_interrupt == true && scanFlag == true)

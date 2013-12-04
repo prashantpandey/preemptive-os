@@ -3,7 +3,7 @@
 
 .global irq0
 irq0:
-	    cli
+	    #cli
             pushq %rax
 	    pushq %rbx
             pushq %rcx
@@ -36,7 +36,7 @@ irq0:
             popq %rcx
 	    popq %rbx
             popq %rax
-	    sti
+	    #sti
             iretq
 .endm
 

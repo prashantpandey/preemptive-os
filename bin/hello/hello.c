@@ -17,8 +17,10 @@ int main(int argc, char* argv[], char* envp[]) {
 	*/
 	
 	printf("Hello World..!!\n");
-	printf("Hello World..!!");
-	//exit(1);
+	printf("Hello World..!!\n");
+	//uint64_t addr = (uint64_t)malloc(4096);
+	//printf("%p", addr);
+	exit(1);
 	//asm("int $0x80");
 	while(1);
 	return 0;

@@ -74,74 +74,6 @@ void handler_print_isr() {
 		kprintf("Page fault occured at this address: %p", page_fault_add);
 	}
 	
-	else if(isr_num == 128) {
-       		        kprintf("Inside Yield");
-      			schedule();
-      
-	/*
-        static int i=0;
-
-        prev = (task *)&readyQ[i]; 
-        i = (i + 1) % num_process; 
-        next = (task *)&readyQ[i]; 
- 
-            asm volatile("cli");
-            
-
-            asm volatile("addq $0x08,%rsp");
-            asm volatile("pushq %rax");
-            asm volatile("pushq %rbx");
-            asm volatile("pushq %rcx");
-            asm volatile("pushq %rdx");
-            asm volatile("pushq %rsi");
-            asm volatile("pushq %rdi");
-            asm volatile("pushq %r8");
-            asm volatile("pushq %r9");
-            asm volatile("pushq %r10");
-            asm volatile("pushq %r11");
-            asm volatile("pushq %r12");
-            asm volatile("pushq %r13");
-            asm volatile("pushq %r14");
-            asm volatile("pushq %r15");
-       
-            __asm__ __volatile__(
-                "movq %%rsp, %0;"
-                :"=m"(prev->rsp)
-                :
-                :"memory"
-            );
-    
-            asm volatile("movq %0, %%cr3":: "a"(next->cr3));
-    
-            __asm__ __volatile__ (
-                "movq %0, %%rsp;"
-                :
-                :"m"(next->rsp)
-                :"memory"
-            );
-
-            tss.rsp0=(uint64_t)&next->stack[63];
-
-            switch_to(&readyQ[0], &readyQ[1]);
-            asm volatile("popq %r15");
-            asm volatile("popq %r14");
-            asm volatile("popq %r13");
-            asm volatile("popq %r12");
-            asm volatile("popq %r11");
-            asm volatile("popq %r10");
-            asm volatile("popq %r9");
-            asm volatile("popq %r8");
-            asm volatile("popq %rdi");
-            asm volatile("popq %rsi");
-            asm volatile("popq %rdx");
-            asm volatile("popq %rcx");
-            asm volatile("popq %rbx");
-            asm volatile("popq %rax");
-            asm volatile("sti");
-            asm volatile("iretq");
-        */ 
-	
-	}
 	else {
 		kprintf("\n\nInside the interrupt: Interrupt Num: %d, Message: %s", isr_num, exception_messages_isr[isr_num]);
 	}
@@ -149,90 +81,93 @@ void handler_print_isr() {
 	while(1);
 }
 
-void handler_syscall() {
-	// kprintf("Inside Yield");
-	// switchProcess();			// to handler the yield system call
-	
-	//kprint("inside isr 128\n");
-    	uint64_t syscall_no = 0;
+// handler yield
+void handler_yield() {
+	kprintf("\nInside Yield");
+        switchProcess();                        // to handler the yield system call
+}
 
-    	__asm__(
-            "movq %%rax, %0;"
-            :"=a"(syscall_no)
-            :
-        );
-    	// kprint("syscall %d\n", syscall_no);
-	if(syscall_no == 1) {						// scanf
-		// TODO: implement scanf sys call
-	}
-    	else if(syscall_no == 2) {					// printf
-    		char* buf;
-        	__asm__ __volatile__(
-                	"movq %%rbx, %0;"
-                	:"=b"(buf)
-                	:
+// Handle sys call
+void handler_syscall() {
+		//kprint("inside isr 128\n");
+	    	uint64_t syscall_no = 0;
+
+    		__asm__(
+	        	"movq %%rax, %0;"
+        		:"=a"(syscall_no)
+            		:
+        	);
+	    	// kprint("syscall %d\n", syscall_no);
+		if(syscall_no == 1) {						// scanf
+			// TODO: implement scanf sys call
+		}
+	    	else if(syscall_no == 2) {					// printf
+    			char* buf;
+        		__asm__ __volatile__(
+                		"movq %%rbx, %0;"
+	                	:"=b"(buf)
+        	        	:
                 	);
-        	while(*buf != '\0')
-        	{
-            		kprintf("%c", *buf);
-            		buf = buf + 1;
-        	}
-      		//  __asm__("hlt"); 
-    	}
-	else if(syscall_no == 3) {					// malloc
-		uint64_t size;
-		__asm__ __volatile__(
-                        "movq %%rbx, %0;"
-                        :"=b"(size)
-                        :
-                        );
-		uint64_t returnAddr = kmalloc((uint32_t)size);
-		int num = 0;
-		if((size % 4096) != 0) {
-			num = (size / 4096) + 1;
+	        	while(*buf != '\0')
+        		{
+            			kprintf("%c", *buf);
+            			buf = buf + 1;
+        		}
+	      		//  __asm__("hlt"); 
+    		}
+		else if(syscall_no == 3) {					// malloc
+			uint64_t size;
+			__asm__ __volatile__(
+	                        "movq %%rbx, %0;"
+        	                :"=b"(size)
+                	        :
+                        	);
+			uint64_t returnAddr = kmalloc((uint32_t)size);
+			int num = 0;
+			if((size % 4096) != 0) {
+				num = (size / 4096) + 1;
+			}
+			else {
+				num = (size / 4096);
+			}
+			addPagesMalloc((void*)returnAddr, num);
+			__asm__ __volatile__(
+				"movq %0, %%rax;"
+				:
+				:"a" ((uint64_t)returnAddr)
+				:"cc", "memory"
+				);		
 		}
-		else {
-			num = (size / 4096);
+		else if(syscall_no == 4) {					// getPid
+			int pid = getPid();
+			__asm__ __volatile__(
+	                        "movq %0, %%rax;"
+        	                :
+                	        :"a" ((uint64_t)pid)
+                        	:"cc", "memory"
+	                        );	
 		}
-		addPagesMalloc((void*)returnAddr, num);
-		__asm__ __volatile__(
-			"movq %0, %%rax;"
-			:
-			:"a" ((uint64_t)returnAddr)
-			:"cc", "memory"
-			);		
-	}
-	else if(syscall_no == 4) {					// getPid
-		int pid = getPid();
-		__asm__ __volatile__(
-                        "movq %0, %%rax;"
-                        :
-                        :"a" ((uint64_t)pid)
-                        :"cc", "memory"
-                        );	
-	}
-	else if(syscall_no == 5) {					// exit 
-		// TODO: exit system call
-	}
-	else if(syscall_no == 6) {					// fork
-		// TODO: fork system call
-	}
-	else if(syscall_no == 7) {					// execvpe
-		// TODO: execvpe system call
-	}
-	else if(syscall_no == 8) {					// sleep
-		// TODO: sleep system call
-	}
-	else if(syscall_no == 9) {					// wait
-		// TODO: wait system call
-	}
+		else if(syscall_no == 5) {					// exit 
+			returnToKernel();			
+		}
+		else if(syscall_no == 6) {					// fork
+			// TODO: fork system call
+		}
+		else if(syscall_no == 7) {					// execvpe
+			// TODO: execvpe system call
+		}
+		else if(syscall_no == 8) {					// sleep
+			// TODO: sleep system call
+		}
+		else if(syscall_no == 9) {					// wait
+			putProcessToWait();
+		}
 }
 
 /* Handles the Interrupt Service Routines(ISRs) when software interrupts are triggered */
 void handler_interrupt_isr0() 
 {
 	__asm__ (
-              "cli;"
               "movq $0, %rax"
               );
 
@@ -274,8 +209,7 @@ void handler_interrupt_isr0()
 void handler_interrupt_isr13()
 {
         __asm__ (
-              "cli;"
-              "movq $13, %rax"
+               "movq $13, %rax"
               );
 	
 	__asm__(".global x86_64_isr_vector13 \n"\
@@ -315,7 +249,6 @@ void handler_interrupt_isr13()
 void handler_interrupt_isr14()
 {
         __asm__ (
-              "cli;"
               "movq $14, %rax"
               );
 
@@ -394,6 +327,42 @@ void handler_interrupt_isr128()
 		"iretq;");
 }
 
+/* Handles the Interrupt Service Routines(ISRs) when software interrupts are triggered */
+void handler_interrupt_isr144()
+{
+         __asm__(".global x86_64_isr_vector144 \n"\
+                        "x86_64_isr_vector144:\n" \
+                        "    pushq %rax;" \
+                        "    pushq %rbx;" \
+                        "    pushq %rcx;" \
+                        "    pushq %rdx;" \
+                        "    pushq %rsi;" \
+                        "    pushq %rdi;" \
+                        "    pushq %r8;" \
+                        "    pushq %r9;" \
+                        "    pushq %r10;" \
+                        "    pushq %r11;" \
+                        "    pushq %r12;" \
+                        "    pushq %r13;" \
+                        "    pushq %r14;" \
+                        "    pushq %r15;" \
+                        "    call handler_yield;"\
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rbx;" \
+                        "    popq %rax;" \
+                "iretq;");
+}
 
 /* Prints the IRQ specific message */
 void handler_print_irq() {
@@ -434,7 +403,6 @@ void handler_interrupt_irq0()
                         "    popq %rcx;" \
                         "    popq %rbx;" \
                         "    popq %rax;" \
-			"    sti;" \
           "iretq;");
 
 	pic_send_eoi(0);
@@ -500,6 +468,7 @@ void init_idt()
         idt_set_gate(14, (uint64_t) &handler_interrupt_isr14, 0x08, 0x8E);
 	
         idt_set_gate(128, (uint64_t) &handler_interrupt_isr128, 0x08, 0xEE);		// DPL 3
+        idt_set_gate(144, (uint64_t) &handler_interrupt_isr144, 0x08, 0xEE);		// DPL 3
 	
 	// Will setup the respective IRQ entries in the IDT for PIT and Keyboard interrupt
         idt_set_gate(32, (uint64_t) &irq0, 0x08, 0x8E);

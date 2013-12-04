@@ -32,7 +32,7 @@ void timer_callback()
    	tick++;
 	outb(0x20, 0x20);	
 
-	if(tick % 100 == 0) {
+	if(tick % 10 == 0) {
     		total_time++;
 		int cursor_p_x = 30;
 		int cursor_p_y = 24;
@@ -123,7 +123,6 @@ void timer_callback()
         __asm__ __volatile__("popq %rcx");
         __asm__ __volatile__("popq %rbx");
         __asm__ __volatile__("popq %rax");
-        __asm__ __volatile__("sti");
 
         //__asm__ __volatile__(
         //      "movq %0, %%r15;"
@@ -145,11 +144,10 @@ void timer_callback()
 		}
 	else {
 		//kprintf("Inside second context switch..!!");		
-		
-		
+			
 		static int i = 0;
 		task* prev = readyQ[i];
-           	i = (i + 1) % num_process;
+         	i = (i + 1) % num_process;
             	task* next = readyQ[i];
 	
 	__asm__ __volatile__(
@@ -170,7 +168,18 @@ void timer_callback()
 
         tss.rsp0 = (uint64_t)&next->stack[63];
 
-        __asm__ __volatile__(
+	// stack adjustment
+	if(stackAdj) {
+            asm volatile("addq $0x08,%rsp");
+            asm volatile("popq %rbx");
+            asm volatile("popq %rbx");
+            asm volatile("popq %rbp");
+            asm volatile("popq %r12");
+            asm volatile("popq %r13");
+	}
+	stackAdj = true;	
+        
+	__asm__ __volatile__(
                 "popq %r15;" \
                 "popq %r14;" \
                 "popq %r13;" \
@@ -187,18 +196,7 @@ void timer_callback()
                 "popq %rax;"
         );
 	
-	// stack adjustment
-	if(stackAdj) {
-            asm volatile("addq $0x08,%rsp");
-            asm volatile("popq %rbx");
-            asm volatile("popq %rbx");
-            asm volatile("popq %rbp");
-            asm volatile("popq %r12");
-            asm volatile("popq %r13");
-	}
-	stackAdj = true;	
 
-	__asm__ __volatile__ ("sti");
         __asm__ __volatile__("iretq");
 	}
 	}

@@ -6,7 +6,7 @@
 #include <sys/tarfs.h>
 #include <common.h>
 
-#define yield() __asm__ __volatile__("int $0x80")
+#define yield() __asm__ __volatile__("int $0x90")
 
 static void load_icode(task* t, char* filename, uint32_t size);
 
@@ -14,9 +14,10 @@ static uint32_t ids = 0;
 extern pml4e *pml4e_table;
 extern uint64_t boot_cr3;
 
-static task kernalProcess;
+static task kernelProcess;
 runQueue* currProcess;
 bool firstSwitch = true;
+bool stackAdj = false;
 
 void function1();
 void function2();
@@ -26,9 +27,82 @@ int getPid() {
 	return currProcess->process.pid;
 }
 
+// remove the process from runQ
+void removeProcess(runQueue* currPr) {
+	runQueue* temp = runQ;
+	while(temp->next != currPr) {
+		temp = temp->next;
+	}
+	temp->next = temp->next->next;
+}
+
+runQueue* fetchNextRunProcess() {
+	runQueue* temp = currProcess;
+	temp = temp->next;
+	while(temp->process.state != 0) {
+		temp = temp->next;
+	}
+	return temp;
+}
+
+void putProcessToWait() {
+	currProcess->process.state = 1;
+	switchProcess();
+}
+
 // Will return load the kernel process after the exit call
 void returnToKernel() {
-	// TODO:
+	__asm__ __volatile__(                             // save the context of curr Process
+        	"movq %%rsp, %0;"
+                :"=m"(kernelProcess.rsp)
+                :
+                :"memory"
+        );
+
+	runQueue* temp = currProcess;
+        currProcess = fetchNextRunProcess();                        // move the curr Process to the next process in runQ
+	
+	removeProcess(temp);					// will remove the process from the runQueue	
+	
+        //task next = currProcess->process;
+        asm volatile("movq %0, %%cr3":: "a"(kernelProcess.cr3));
+
+       	__asm__ __volatile__ (
+                "movq %0, %%rsp;"
+                :
+                :"m"(kernelProcess.rsp)
+       		:"memory"
+       );
+
+       tss.rsp0 = (uint64_t)kernelProcess.stack[63];
+
+       // stack adjustment
+       if(stackAdj) {
+                asm volatile("addq $0x08,%rsp");
+                asm volatile("popq %rbx");
+                asm volatile("popq %rbx");
+                asm volatile("popq %rbp");
+                asm volatile("popq %r12");
+        	asm volatile("popq %r13");
+        }
+        stackAdj = true;
+
+        __asm__ __volatile__("popq %r15");
+        __asm__ __volatile__("popq %r14");
+        __asm__ __volatile__("popq %r13");
+        __asm__ __volatile__("popq %r12");	
+        __asm__ __volatile__("popq %r11");
+        __asm__ __volatile__("popq %r10");
+        __asm__ __volatile__("popq %r9");
+        __asm__ __volatile__("popq %r8");
+        __asm__ __volatile__("popq %rdi");
+        __asm__ __volatile__("popq %rsi");
+        __asm__ __volatile__("popq %rdx");
+        __asm__ __volatile__("popq %rcx");
+        __asm__ __volatile__("popq %rbx");
+        __asm__ __volatile__("popq %rax");
+//        __asm__ __volatile__("sti");
+	__asm__ __volatile__("iretq");
 }
 
 // To fetch the kernel virtual address
@@ -41,8 +115,47 @@ void* get_kva(page *pp)
     	return (void *)kva_addr;
 }
 
+
 // Will create a circular linked list for process in the run queue
-void createProcess(void* function) {
+void createProcessLc(void* function) {
+        runQueue* newPr = (runQueue *)get_kva(page_alloc(0));
+
+        // create the process structure
+        page* pp = page_alloc(0);
+        uint64_t* pml4e_p = (uint64_t* )get_kva(pp);                    // initiaize the memory str for process
+        pml4e_p[511] = pml4e_table[511];                        // copy the kernel address space in process VM
+
+        newPr->process.pid = ids++;
+	newPr->process.state = 0;
+        newPr->process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);                // init cr3
+        newPr->process.pml4e_p = pml4e_p;
+
+        newPr->process.stack[59] = (uint64_t)function;
+        newPr->process.rsp = (uint64_t)&newPr->process.stack[45];
+
+        newPr->process.stack[63] = 0x23 ;                              //  Data Segment
+        newPr->process.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
+        newPr->process.stack[61] = 0x246;                           //  EFlags
+        newPr->process.stack[60] = 0x1b ;                              // Code Segment
+
+        if(ids == 2) {
+                runQ = newPr;
+                runQ->next = runQ;
+        }
+        else {
+                runQueue* temp = runQ;
+                int i = 1;
+                while(i < ids - 1) {
+                        temp = temp->next;
+                        i++;
+                }
+                temp->next = newPr;
+                newPr->next = runQ;
+        }
+}
+
+// Will create a circular linked list for process in the run queue
+void createProcess(char* file) {
 	runQueue* newPr = (runQueue *)get_kva(page_alloc(0));
 
 	// create the process structure
@@ -51,12 +164,13 @@ void createProcess(void* function) {
 	pml4e_p[511] = pml4e_table[511];			// copy the kernel address space in process VM
 	
 	newPr->process.pid = ids++;
+	newPr->process.state = 0;
 	newPr->process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);		// init cr3
 	newPr->process.pml4e_p = pml4e_p;
 
-        //load_icode(&process, "bin/hello1", 0);	
+        load_icode(&(newPr->process), file, 0);	
 	
-	newPr->process.stack[59] = (uint64_t)function;
+	newPr->process.stack[59] = (uint64_t)newPr->process.entry;
         newPr->process.rsp = (uint64_t)&newPr->process.stack[45];
 
         newPr->process.stack[63] = 0x23 ;                              //  Data Segment    
@@ -64,13 +178,13 @@ void createProcess(void* function) {
         newPr->process.stack[61] = 0x246;                           //  EFlags
         newPr->process.stack[60] = 0x1b ;                              // Code Segment
 		
-	if(ids == 1) {
+	if(ids == 2) {
 		runQ = newPr;
 		runQ->next = runQ;
 	}	
 	else {
 		runQueue* temp = runQ;
-		int i = 0;
+		int i = 1;
 		while(i < ids - 1) {
 			temp = temp->next;
 			i++;
@@ -84,13 +198,19 @@ void createProcess(void* function) {
 void initContextSwitch() {
 	
 	// create kernal
-	kernalProcess.pid = ids++;
-	kernalProcess.cr3 = boot_cr3;
-	kernalProcess.pml4e_p = pml4e_table;
+	kernelProcess.pid = ids++;
+	kernelProcess.state = 0;
+	kernelProcess.cr3 = boot_cr3;
+	kernelProcess.pml4e_p = pml4e_table;
 		
 	// create two user space process
-	createProcess(&function1);
-	createProcess(&function2);
+	// createProcess("bin/hello");
+	// createProcess("bin/hello1");
+	// createProcess("bin/hello2");
+	// createProcess("bin/hello3");
+	
+	createProcessLc(&function1);
+	createProcessLc(&function2);
 
 	firstSwitch = false;		// unset the first context switch flag
 	
@@ -121,7 +241,7 @@ void initContextSwitch() {
         __asm__ __volatile__("popq %rcx");
         __asm__ __volatile__("popq %rbx");
         __asm__ __volatile__("popq %rax");
-	__asm__ __volatile__("sti");	
+//	__asm__ __volatile__("sti");	
 
 	tss.rsp0 = (uint64_t)&pr.stack[63];  
 
@@ -164,7 +284,7 @@ void switchProcess() {
             		:"memory"
         	);
     			
-		currProcess = currProcess->next;			// move the curr Process to the next process in runQ
+		currProcess = fetchNextRunProcess();			// move the curr Process to the next process in runQ
 		
 		//task next = currProcess->process;
 		asm volatile("movq %0, %%cr3":: "a"(currProcess->process.cr3));	
@@ -178,6 +298,17 @@ void switchProcess() {
 		
 		tss.rsp0 = (uint64_t)currProcess->process.stack[63];
         
+		// stack adjustment
+        	if(stackAdj) {
+            		asm volatile("addq $0x08,%rsp");
+          	  	asm volatile("popq %rbx");
+            		asm volatile("popq %rbx");
+            		asm volatile("popq %rbp");
+            		asm volatile("popq %r12");
+            		asm volatile("popq %r13");
+        	}
+        	stackAdj = true;
+			
 		__asm__ __volatile__("popq %r15");
 		__asm__ __volatile__("popq %r14");
         	__asm__ __volatile__("popq %r13");
@@ -192,7 +323,7 @@ void switchProcess() {
         	__asm__ __volatile__("popq %rcx");
         	__asm__ __volatile__("popq %rbx");
         	__asm__ __volatile__("popq %rax");
-        	__asm__ __volatile__("sti");  
+//        	__asm__ __volatile__("sti");  
         	__asm__ __volatile__("iretq");		
 	}
 }
@@ -287,7 +418,7 @@ void first_context_switch()
         __asm__ __volatile__("popq %rcx");
         __asm__ __volatile__("popq %rbx");
         __asm__ __volatile__("popq %rax");
-	__asm__ __volatile__("sti");	
+	//__asm__ __volatile__("sti");	
 
 	tss.rsp0 = (uint64_t)&thread1.stack[63];  
 
@@ -354,7 +485,7 @@ void switch_to(task* prev, task* next) {
         __asm__ __volatile__("popq %rcx");
         __asm__ __volatile__("popq %rbx");
         __asm__ __volatile__("popq %rax");
-        __asm__ __volatile__("sti");  
+//        __asm__ __volatile__("sti");  
         __asm__("iretq");
 }
 
@@ -390,12 +521,10 @@ void function1() {
 	kprintf("\nHello");    		
 	while(1) {
 		static int i = 0;
-		i++;
-		//if(i == 0)
-        	 //	kprintf("\nHello inside while: %d", i++);
+        	kprintf("\nfunction 1: %d", i++);
         	//switchProcess();
 		//schedule();
-        	// yield();
+        	yield();
    	}
 }
 
@@ -403,12 +532,10 @@ void function2() {
 	kprintf("\nWorld..!!");
     	while(1) {
 		static int i = 0;
-		i++;
-		//if(i++ == 0)
-        	//	kprintf("World..!! inside while: %d", i++);
+        	kprintf("\nfunction 2: %d", i++);
         	//switchProcess();
 		//schedule();
-        	//yield();
+        	yield();
    	}
 }
 

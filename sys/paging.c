@@ -362,7 +362,7 @@ void mem_init()
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, MEM_LIMIT, (uint64_t)lphysbase, PTE_W | PTE_P | PTE_U);
 		
 	// map the BIOS/Video memory region	
-	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P | PTE_U);
+	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 12288, (uint64_t)0xb8000, PTE_W | PTE_P | PTE_U);
 	
 	//kprintf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		

@@ -261,7 +261,7 @@ unsigned int printf_integer(int message, unsigned int line, unsigned int column,
 
         i = ((line*80) + column)*2;
         initial_p = i;
-        int_array_reset(digits, 12);
+        // int_array_reset(digits, 12);
 
         while(quotient >= 10) {
                 remainder = (int) (quotient % 10);
@@ -299,7 +299,7 @@ unsigned int printf_hexadecimal(unsigned long message, unsigned int line, unsign
 
         i = ((line*80) + column)*2;
         initial_p = i;
-        char_array_reset(result, 8);
+        // char_array_reset(result, 8);
 
         while(quotient > 0) {
                 result[cnt++] = hex[(quotient % 16)];
@@ -422,8 +422,8 @@ int kprintf(const char *fmt, ...)
         va_start(args, fmt);
 
         // flush array
-        char_array_reset(str, 1024);
-        char_array_reset(str_temp, 1024);
+        //char_array_reset(str, 512);
+        //char_array_reset(str_temp, 512);
 
         // TODO: write the code to print        
         for(;*fmt;)

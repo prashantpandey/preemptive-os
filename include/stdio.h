@@ -8,5 +8,6 @@ int printf(const char *format, ...);
 int scanf(const char *format, ...);
 
 void* malloc(uint32_t size);
+void exit(int);
 
 #endif

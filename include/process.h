@@ -11,7 +11,7 @@ typedef struct {
 	uint64_t cr3;			// current value of CR3 register for process switch
 	pml4e* pml4e_p;
 	uint64_t entry;			// user funciton entry point	
-	uint32_t state;			// 0: ready, 1: wait, 2: sleep
+	int state;			// 0: ready, 1: wait, 2: sleep
 } task;
 
 task thread1;
@@ -40,6 +40,8 @@ void switchProcess();
 void * get_kva(page *pp);
 void first_context_switch();
 void addPagesMalloc(void* va, int num);
+void returnToKernel();
+void putProcessToWait();
 
 void schedule();
 void switch_to(task* prev, task* next);

@@ -5,9 +5,9 @@
 #include <defs.h>
 
 int printf(const char *format, ...);
-int scanf(const char *format, ...);
+int scanf(char *buffer);
 
 void* malloc(uint32_t size);
-void exit(int);
+int getpid();
 
 #endif

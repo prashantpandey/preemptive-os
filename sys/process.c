@@ -204,13 +204,13 @@ void initContextSwitch() {
 	kernelProcess.pml4e_p = pml4e_table;
 		
 	// create two user space process
-	// createProcess("bin/hello");
-	// createProcess("bin/hello1");
+	createProcess("bin/hello");
+	createProcess("bin/hello1");
 	// createProcess("bin/hello2");
 	// createProcess("bin/hello3");
 	
-	createProcessLc(&function1);
-	createProcessLc(&function2);
+	// createProcessLc(&function1);
+	// createProcessLc(&function2);
 
 	firstSwitch = false;		// unset the first context switch flag
 	

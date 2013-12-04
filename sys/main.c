@@ -52,9 +52,16 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	// first_context_switch();
 	initContextSwitch();
 	
-	// char p = ' ';
-	// kscanf("%c", &p);
-	// kprintf("\n %c", p);
+	/*	
+	char p[100];
+	kscanf(p);
+	int i = 0;
+	while(p[i] != '\0') {
+		kprintf("%c", p[i]);
+		i++;
+	}
+	//kprintf("\n %s", p);
+	*/
 	while(1);
 }
 

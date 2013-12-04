@@ -99,7 +99,14 @@ void handler_syscall() {
         	);
 	    	// kprint("syscall %d\n", syscall_no);
 		if(syscall_no == 1) {						// scanf
-			// TODO: implement scanf sys call
+			__asm__ __volatile__ ("sti");
+			char* buf;
+			__asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(buf)
+                                :
+                        );
+			kscanf(buf);
 		}
 	    	else if(syscall_no == 2) {					// printf
     			char* buf;

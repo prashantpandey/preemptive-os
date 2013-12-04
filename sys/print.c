@@ -422,9 +422,11 @@ int kprintf(const char *fmt, ...)
         va_start(args, fmt);
 
         // flush array
-        //char_array_reset(str, 512);
-        //char_array_reset(str_temp, 512);
-
+        // char_array_reset(str, 1024);
+        // char_array_reset(str_temp, 1024);
+	// memset(str, 0, 1024);
+	// memset(str_temp, 0, 1024);
+	
         // TODO: write the code to print        
         for(;*fmt;)
         {

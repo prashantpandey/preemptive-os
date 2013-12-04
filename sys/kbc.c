@@ -153,12 +153,23 @@ void keyboard_handler()
 }
 
 
-int kscanf(const char* fmt, char* var) {
-	
+int kscanf(char* buffer) {
+
 	int i = 0;
 	scanFlag = true;
-	fmt++;
 
+	// va_start(args, fmt);
+	
+	kbip_reset();	
+	while(scanFlag);
+	for(i = 0; i < 512; i++) {
+		buffer[i] = '\0';
+	}
+	kbip[kbip_count] = '\0';
+	strcpy(buffer, kbip);
+	kbip_reset();
+	
+/*
 	while(1)
 	{
 	
@@ -212,7 +223,7 @@ int kscanf(const char* fmt, char* var) {
 	// scanFlag = false;
 	
 	//int* p_int;
-	/*
+	
 	kprintf("Reaching");		
 	if(*(++fmt) == 'c') {
 		kprintf("Inside if");

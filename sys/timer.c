@@ -32,7 +32,7 @@ void timer_callback()
    	tick++;
 	outb(0x20, 0x20);	
 
-	if(tick % 10 == 0) {
+	if(tick % 100 == 0) {
     		total_time++;
 		int cursor_p_x = 30;
 		int cursor_p_y = 24;

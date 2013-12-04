@@ -10,7 +10,7 @@ uint64_t stoi(char *s);
 uint64_t octalToDecimal(uint64_t n);
 
 int kprintf(const char *format, ...);
-int kscanf(const char *format, void* var);
+int kscanf(char *format);
 
 unsigned int printf_string(char *message, unsigned int line, unsigned int column);
 unsigned int printf_int(int message, unsigned int line, unsigned int column);

@@ -21,50 +21,31 @@ typedef struct {
 	struct mm_struct *mm; 		// a pointer to mm_struct
 } task;
 
-typedef struct mm_struct {
-        struct vm_area_struct * mmap;           /* list of VMAs */
-        struct vm_area_struct * mmap_cache;     /* last find_vma result */
-        uint64_t free_area_cache                /* 1st address space hole*/
-
-        pml4e* pml4e;
-        int mm_users;                           /* Address space users */
-        int mm_count;                           /* How many references to "struct mm_struct" (users count as 1) */
-        int map_count;                          /* Number of VMAs */
-
-        // struct list_head mmlist;                /* list of all mm_structs */
-
-        uint64_t start_code;                    /* start address of code */
-        uint64_t end_code;                      /* final address of code */
-        uint64_t start_data;                    /* start address of data */
-        uint64_t end_data;                      /* final address of data */
-        uint64_t start_brk;                     /* start address of heap */
-        uint64_t brk;                           /* final address of heap */
-        uint64_t start_stack;                   /* start address of stack */
-        uint64_t arg_start;                     /* start of arguments */
-        uint64_t arg_end;                       /* end of arguments */
-        uint64_t total_vm;                      /* Total pages mapped */
-
-        #ifdef CONFIG_MM_OWNER
-        /*
-        * "owner" points to a task that is regarded as the canonical
-        * user/owner of this mm. All of the following must be true in
-        * order for it to be changed:
-        *
-        * current == mm->owner
-        * current->mm != mm
-        * new_owner->mm == mm
-        * new_owner->alloc_lock is held
-        */
-       struct task* owner;
-} mm_struct;
 
 typedef struct vm_area_struct{
-        struct mm_struct *vm_mm;                // Associated
-        uint64_t vm_start;
-        uint64_t vm_end;
-        struct vm_area_struct *vm_next;
-} vma;
+    struct mm_struct * vm_mm;       /* associated mm_struct */
+    uint64_t vm_start;              /* VMA start, inclusive */
+    uint64_t vm_end;                /* VMA end, exclusive */
+    uint64_t vm_mmsz;               /* VMA size */
+    unsigned long vm_flags;         /* flags */
+    uint32_t grows_down;
+    uint64_t vm_file;          /* mapped file, if any */
+    struct vm_area_struct  *vm_next;/* list of VMA's */
+    uint64_t vm_offset;    /* file offset */
+}vma;
 
+typedef struct mm_struct {
+    int count;
+    uint64_t * pt; // page table pointer
+    unsigned long context;
+    unsigned long start_code, end_code, start_data, end_data;
+    unsigned long start_brk, brk, start_stack, start_mmap;
+    unsigned long arg_start, arg_end, env_start, env_end;
+    unsigned long rss, total_vm, locked_vm;
+    unsigned long def_flags;
+    struct vm_area_struct * mmap;
+    struct vm_area_struct * mmap_avl;
+}mm;
 
 task thread1;
 task thread2;

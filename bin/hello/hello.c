@@ -27,7 +27,7 @@ int main(int argc, char* argv[], char* envp[]) {
 		i++;
 	}
 	int id = getpid();
-	printf("Pid: %d", id);
+	printf("\nPid: %d", id);
 	//uint64_t addr = (uint64_t)malloc(4096);
 	//printf("%p", addr);
 	//exit(1);

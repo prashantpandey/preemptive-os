@@ -24,7 +24,7 @@ int showShell()
                 printf("($MYPATH is %s)\n", path);
                 */
 
-		kprintf("myshell$ ");
+		kprintf("myshell:~ $ ");
                 kscanf(buffer);
                 //command = fgets(buffer, 1024, stdin);
                 kprintf("Buffer: %s\n", buffer);

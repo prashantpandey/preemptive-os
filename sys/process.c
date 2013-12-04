@@ -78,31 +78,34 @@ void returnToKernel() {
 
        // stack adjustment
        if(stackAdj) {
-                asm volatile("addq $0x08,%rsp");
-                asm volatile("popq %rbx");
-                asm volatile("popq %rbx");
-                asm volatile("popq %rbp");
-                asm volatile("popq %r12");
-        	asm volatile("popq %r13");
+		__asm__ __volatile__ (
+			"addq $0x08,%rsp;"\
+			"popq %rbx;" \
+			"popq %rbx;" \
+			"popq %rbp;" \
+			"popq %r12;" \
+			"popq %r13;"
+		);
         }
         stackAdj = true;
 
-        __asm__ __volatile__("popq %r15");
-        __asm__ __volatile__("popq %r14");
-        __asm__ __volatile__("popq %r13");
-        __asm__ __volatile__("popq %r12");	
-        __asm__ __volatile__("popq %r11");
-        __asm__ __volatile__("popq %r10");
-        __asm__ __volatile__("popq %r9");
-        __asm__ __volatile__("popq %r8");
-        __asm__ __volatile__("popq %rdi");
-        __asm__ __volatile__("popq %rsi");
-        __asm__ __volatile__("popq %rdx");
-        __asm__ __volatile__("popq %rcx");
-        __asm__ __volatile__("popq %rbx");
-        __asm__ __volatile__("popq %rax");
+        __asm__ __volatile__ (
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rbx;" \
+                        "    popq %rax;" \
+                "iretq;");
 //        __asm__ __volatile__("sti");
-	__asm__ __volatile__("iretq");
 }
 
 // To fetch the kernel virtual address
@@ -227,20 +230,22 @@ void initContextSwitch() {
     	);								
 		
 	// pop all the general purpose registers
-	__asm__ __volatile__("popq %r15");
-	__asm__ __volatile__("popq %r14");
-	__asm__ __volatile__("popq %r13");
-	__asm__ __volatile__("popq %r12");
-	__asm__ __volatile__("popq %r11");
-        __asm__ __volatile__("popq %r10");
-        __asm__ __volatile__("popq %r9");
-        __asm__ __volatile__("popq %r8");
-        __asm__ __volatile__("popq %rdi");
-        __asm__ __volatile__("popq %rsi");
-        __asm__ __volatile__("popq %rdx");
-        __asm__ __volatile__("popq %rcx");
-        __asm__ __volatile__("popq %rbx");
-        __asm__ __volatile__("popq %rax");
+        __asm__ __volatile__ (
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rbx;" \
+                        "    popq %rax;" 
+              );
 //	__asm__ __volatile__("sti");	
 
 	tss.rsp0 = (uint64_t)&pr.stack[63];  
@@ -297,34 +302,37 @@ void switchProcess() {
         	);
 		
 		tss.rsp0 = (uint64_t)currProcess->process.stack[63];
-        
-		// stack adjustment
-        	if(stackAdj) {
-            		asm volatile("addq $0x08,%rsp");
-          	  	asm volatile("popq %rbx");
-            		asm volatile("popq %rbx");
-            		asm volatile("popq %rbp");
-            		asm volatile("popq %r12");
-            		asm volatile("popq %r13");
-        	}
-        	stackAdj = true;
-			
-		__asm__ __volatile__("popq %r15");
-		__asm__ __volatile__("popq %r14");
-        	__asm__ __volatile__("popq %r13");
-        	__asm__ __volatile__("popq %r12");
-        	__asm__ __volatile__("popq %r11");
-        	__asm__ __volatile__("popq %r10");
-        	__asm__ __volatile__("popq %r9");
-        	__asm__ __volatile__("popq %r8");
-        	__asm__ __volatile__("popq %rdi");
-        	__asm__ __volatile__("popq %rsi");
-        	__asm__ __volatile__("popq %rdx");
-        	__asm__ __volatile__("popq %rcx");
-        	__asm__ __volatile__("popq %rbx");
-        	__asm__ __volatile__("popq %rax");
+       		       // stack adjustment
+       if(stackAdj) {
+                __asm__ __volatile__ (
+                        "addq $0x08,%rsp;" \
+                        "popq %rbx;" \
+                        "popq %rbx;" \
+                        "popq %rbp;" \
+                        "popq %r12;" \
+                        "popq %r13;"
+                );
+        }
+        stackAdj = true;
+
+        __asm__ __volatile__ (
+                        "    popq %r15;"  \
+                        "    popq %r14;"  \
+                        "    popq %r13;"  \
+                        "    popq %r12;"  \
+                        "    popq %r11;"  \
+                        "    popq %r10;" \
+                        "    popq %r9;" \
+                        "    popq %r8;" \
+                        "    popq %rdi;" \
+                        "    popq %rsi;" \
+                        "    popq %rdx;" \
+                        "    popq %rcx;" \
+                        "    popq %rbx;" \
+                        "    popq %rax;" \
+                "iretq;"); 
+	
 //        	__asm__ __volatile__("sti");  
-        	__asm__ __volatile__("iretq");		
 	}
 }
 
@@ -568,6 +576,31 @@ static void region_alloc(task* t, void* va, uint32_t len) {
     	}
 }
 
+vma* malloc_vma(mm* mm)
+{
+        vma *vm_tail;
+        char *tmp;
+        if(mm->mmap == NULL)  // first vma allocate one page for it
+        {
+                tmp=(char *)kmalloc(1); // this will allocate one page so just pass size>0
+                vm_tail = (vma *)tmp;
+                mm->mmap = vm_tail;
+                mm->count += 1;
+                return (vma *)tmp;
+        }
+        else
+        {
+                vm_tail = mm->mmap;
+                while(vm_tail->vm_next != NULL)
+                        vm_tail = vm_tail->vm_next;
+
+                tmp = (char *)vm_tail + sizeof(vma);  // go to the next vma in the same page (base +size)
+                vm_tail->vm_next = (vma *)tmp;
+                mm->count += 1;
+                return (struct vm_area_struct *)tmp;
+   }
+}
+
 // Will load the user program header through tarfs
 static void load_icode(task* t, char* filename, uint32_t size) {
 	uint64_t offset = is_file_exists(filename);
@@ -601,7 +634,18 @@ static void load_icode(task* t, char* filename, uint32_t size) {
  
                 		// Switch back to kernel's address space
                 		lcr3(boot_cr3);
-            		}
+				
+				/*				
+				vma* vm = malloc_vma(t->mm);
+                                vm->vm_start = ph->p_vaddr;
+                                vm->vm_end = vm->vm_start + ph->p_memsz;
+                                vm->vm_mmsz = ph->p_memsz;
+                                vm->vm_next = NULL;
+                                vm->vm_file =(uint64_t)elf;
+                                vm->vm_flags = ph->p_flags;
+                                vm->vm_offset = ph->p_offset; 
+           			*/
+			}
         	}
  
         // Now map one page for the program's initial stack
@@ -610,6 +654,18 @@ static void load_icode(task* t, char* filename, uint32_t size) {
  
         // Magic to start executing environment at its address.
         	t->entry = elf->e_entry;
-    	}
+    		/*
+		t->heap_vma = (vma *)kmalloc(1); // allocate a separate page for heap vma, however this is waste
+                vma *tmp = t->mm->mmap;
+                while(tmp->vm_next != NULL)  {
+                        tmp = tmp->vm_next;  // go to the last vma
+                }
+
+                t->heap_vma->vm_start = t->heap_vma->vm_end = ALIGN_DOWN((uint64_t)(tmp->vm_end + 0x1000));  // start from next page (keep the distance)
+                t->heap_vma->vm_mmsz = 0x1000;
+
+                region_alloc(t, (void *)t->heap_vma->vm_start, t->heap_vma->vm_mmsz);
+		*/
+	}
 }
 

@@ -12,6 +12,7 @@
 #include <paging.h>
 #include <process.h>
 #include <sys/tarfs.h>
+#include <shell.h>
 
 void print_hello_world() {
 	kprintf("\nHello World..!!");
@@ -50,7 +51,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	
 	// calling the first context switch
 	// first_context_switch();
-	initContextSwitch();
+	// initContextSwitch();
 	
 	/*	
 	char p[100];
@@ -62,6 +63,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	}
 	//kprintf("\n %s", p);
 	*/
+	showShell();
 	while(1);
 }
 

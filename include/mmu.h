@@ -8,6 +8,10 @@
 // \---          --/                 \-- PDPE(va) -/ \--- PDE(va) ---/\---- PTE(va) ----/\------PGOFF(va) --------/
 // \-----------------------------------  PGNUM(va) ---------------------------------------------/
 
+#define PAGE_TABLE_ALIGNLENT 0x1000
+ 
+/* mask out bits under page size */
+#define ALIGN_DOWN(x)   (x & ~(PAGE_TABLE_ALIGNLENT-1))
 
 #define PPN(va)			(((uint64_t)(va) >> PGSHIFT)
 

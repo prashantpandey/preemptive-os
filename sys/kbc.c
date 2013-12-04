@@ -157,6 +157,7 @@ int kscanf(char* buffer) {
 
 	int i = 0;
 	scanFlag = true;
+	kbip_count = 0;
 
 	// va_start(args, fmt);
 	
@@ -166,7 +167,12 @@ int kscanf(char* buffer) {
 		buffer[i] = '\0';
 	}
 	kbip[kbip_count] = '\0';
+//	kprintf("Reaching here");
 	strcpy(buffer, kbip);
+	/*while(*buffer!='\0')
+	{
+	kprintf("%c",*buffer++);
+	}*/
 	kbip_reset();
 	
 /*

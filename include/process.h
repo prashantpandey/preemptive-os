@@ -79,6 +79,7 @@ void returnToKernel();
 void putProcessToWait();
 uint64_t execvpe(char* arg1,uint64_t arg2, uint64_t arg3);
 void* malloc(uint32_t size);
+void displayProcess();
 
 void schedule();
 void switch_to(task* prev, task* next);

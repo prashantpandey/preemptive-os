@@ -2,6 +2,7 @@
 #include <syscall.h>
 
 
-void sleep(uint64_t sec) {
-
+int sleep(int sec) {
+	int ret = __syscall1(8, (uint64_t)sec);
+	return ret;
 }

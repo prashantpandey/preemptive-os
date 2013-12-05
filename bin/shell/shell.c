@@ -98,6 +98,10 @@ int main(int argc, char* argv[], char* envp[]) {
                 {
                         printStr(current_dir);
                 }
+		else if(strcmp(tokens[0], "ps") == 0) 
+		{
+			ps();
+		}
                 i = 0;
                 for (i=0; i<512; i++)
                 {

@@ -131,18 +131,7 @@ void handler_syscall() {
         	                :"=b"(size)
                 	        :
                         	);
-			//uint64_t returnAddr = kmalloc((uint32_t)size);
 			void* returnAddr = malloc((uint32_t)size);
-			/*
-			int num = 0;
-			if((size % 4096) != 0) {
-				num = (size / 4096) + 1;
-			}
-			else {
-				num = (size / 4096);
-			}
-			addPagesMalloc((void*)returnAddr, num);
-			*/
 			__asm__ __volatile__(
 				"movq %0, %%rax;"
 				:
@@ -273,7 +262,6 @@ void handler_syscall() {
                         );
 			close(file_addr);
                 }
-
 		else if(syscall_no == 15) {					///Close Directory
                         uint64_t dir_addr;
                         __asm__ __volatile__(
@@ -282,6 +270,9 @@ void handler_syscall() {
                                 :
                         );
 			closedir(dir_addr);
+                }
+		else if(syscall_no == 16) {					// ps
+			displayProcess();
                 }
 }
 

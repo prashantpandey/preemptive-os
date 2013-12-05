@@ -243,6 +243,8 @@ void initContextSwitch(uint64_t* stack) {
 		
 	// create two user space process
 	createProcess("bin/shell");
+	
+	// createProcess("bin/hello");
 	// createProcess("bin/hello1");
 	
 	// createProcess("bin/hello2");
@@ -256,39 +258,6 @@ void initContextSwitch(uint64_t* stack) {
 	__asm__ __volatile__ ("mov $0x2b,%ax");
   	__asm__ __volatile__ ("ltr %ax");
 	
-	/*
-	task pr = currProcess->process;
-	__asm__ __volatile__("movq %0, %%cr3":: "a"(pr.cr3));		// load the cr3 reg with the cr3 of process
-	// kprintf("I am in process virtual address space \n");
-	__asm__ __volatile__ (						
-            "movq %0, %%rsp;" //load next's stack in rsp
-            :
-            :"r"(pr.rsp)
-    	);								
-	// pop all the general purpose registers
-        __asm__ __volatile__ (
-                        "    popq %r15;"  \
-                        "    popq %r14;"  \
-                        "    popq %r13;"  \
-                        "    popq %r12;"  \
-                        "    popq %r11;"  \
-                        "    popq %r10;" \
-                        "    popq %r9;" \
-                        "    popq %r8;" \
-                        "    popq %rdi;" \
-                        "    popq %rsi;" \
-                        "    popq %rdx;" \
-                        "    popq %rcx;" \
-                        "    popq %rbx;" \
-                        "    popq %rax;" 
-              );
-	// __asm__ __volatile__("sti");	
-
-	tss.rsp0 = (uint64_t)&pr.stack[63];  
-    	__asm__ __volatile__("mov $0x2b,%ax");
-    	__asm__ __volatile__("ltr %ax");
-    	__asm__ __volatile__("iretq");
-	*/
 }
 
 // Will switch the process the processes in round robin manner using the circular
@@ -338,7 +307,7 @@ void switchProcess() {
 			);
 		        __asm__ __volatile__ ("movq %0, %%cr3":: "a"(currProcess->process.cr3));
 			
-			//kprintf("\nSecond context switch: %d", currProcess->process.pid);
+			// kprintf("\nSecond context switch: %d", currProcess->process.pid);
 			__asm__ __volatile__ (
 				"movq %0, %%rsp;"
 			        :   
@@ -813,7 +782,6 @@ uint64_t execvpe(char* arg1, uint64_t arg2, uint64_t arg3) {
 }
 
 void displayProcess() {
-
 	runQueue* temp = currProcess;
 	runQueue* temp1 = temp->next;
 	kprintf("\n PID: %d  PPID: %d", temp->process.pid, temp->process.ppid);
@@ -835,3 +803,20 @@ void* malloc(uint32_t size) {
     	return (void *)old;
 }
 
+int sleep(int sec) {
+	currProcess->process.sleep_time = sec;
+        
+	__asm__ __volatile__(
+                "movq %%rsp, %0;"
+                :"=m"(currProcess->process.rsp)
+                :
+        	:"memory"
+        );
+	returnToKernel(0);
+	firstSwitch = 1;
+  	// __asm__("hlt");
+   	__asm__ __volatile__("pop %rbx");  // extra reg schedule;
+   	__asm__ __volatile__("pop %rax");  // isr next instruction
+   	__asm__ __volatile__("jmp *%rax");
+	return 0;
+}

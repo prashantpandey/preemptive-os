@@ -8,6 +8,8 @@
 #include <process.h>
 #include <paging.h>
 #include <sys/gdt.h>
+#include <sys/tarfs.h>
+
 
 extern void irq0();
 extern void irq1();
@@ -92,7 +94,7 @@ void handler_syscall() {
 		//kprint("inside isr 128\n");
 	    	uint64_t syscall_no = 0;
 
-    		__asm__(
+    		__asm__ __volatile__(
 	        	"movq %%rax, %0;"
         		:"=a"(syscall_no)
             		:
@@ -130,6 +132,7 @@ void handler_syscall() {
                 	        :
                         	);
 			uint64_t returnAddr = kmalloc((uint32_t)size);
+			/*
 			int num = 0;
 			if((size % 4096) != 0) {
 				num = (size / 4096) + 1;
@@ -138,12 +141,13 @@ void handler_syscall() {
 				num = (size / 4096);
 			}
 			addPagesMalloc((void*)returnAddr, num);
+			*/
 			__asm__ __volatile__(
 				"movq %0, %%rax;"
 				:
 				:"a" ((uint64_t)returnAddr)
 				:"cc", "memory"
-				);		
+			);		
 		}
 		else if(syscall_no == 4) {					// getPid
 			int pid = getPid();
@@ -152,7 +156,7 @@ void handler_syscall() {
         	                :
                 	        :"a" ((uint64_t)pid)
                         	:"cc", "memory"
-	                        );	
+	                );	
 		}
 		else if(syscall_no == 5) {					// exit 
 			returnToKernel();			
@@ -168,6 +172,72 @@ void handler_syscall() {
 		}
 		else if(syscall_no == 9) {					// wait
 			putProcessToWait();
+		}
+		else if(syscall_no == 10) {					// opendir
+			char* dir;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(dir)
+                                :
+                        );
+			uint64_t addrHdr = open_dir(dir);
+			__asm__ __volatile__(
+                                "movq %0, %%rax;"
+                                :
+                                :"a" ((uint64_t)addrHdr)
+                                :"cc", "memory"
+                       );	
+		}
+		else if(syscall_no == 11) {					// read dir
+			char* dir;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(dir)
+                                :
+                        );
+			read_dir(dir);
+		}
+		else if(syscall_no == 12) {					// open file
+			char* file;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(file)
+                                :
+                        );
+                        uint64_t addrHdr = open(file);
+                        __asm__ __volatile__(
+                                "movq %0, %%rax;"
+                                :
+                                :"a" ((uint64_t)addrHdr)
+                                :"cc", "memory"
+                       );
+		}
+		else if(syscall_no == 13) {					// read file
+			uint64_t file;
+			uint64_t  buf;
+			uint64_t size;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(file)
+                                :
+                        );
+			__asm__ __volatile__(
+                                "movq %%rcx, %0;"
+                                :"=c"(size)
+                                :
+                        );
+                        __asm__ __volatile__(
+                                "movq %%rdx, %0;"
+                                :"=d"(buf)
+                                :
+                        );
+			int size_read = read_file(file, (uint32_t)size, buf);
+		        __asm__ __volatile__(
+                                "movq %0, %%rax;"
+                                :
+                                :"a" ((uint64_t)size_read)
+                                :"cc", "memory"
+                        );
 		}
 }
 

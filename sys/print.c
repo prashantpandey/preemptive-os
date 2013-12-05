@@ -293,7 +293,7 @@ unsigned int printf_hexadecimal(unsigned long message, unsigned int line, unsign
 
         int cnt = 0;
         int initial_p = 0;
-        char result[8];
+        char result[24];
         char hex[] = "0123456789abcdef";
         unsigned long quotient = message;
 

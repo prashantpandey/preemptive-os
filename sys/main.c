@@ -14,8 +14,28 @@
 #include <sys/tarfs.h>
 #include <shell.h>
 
-void print_hello_world() {
-	kprintf("\nHello World..!!");
+void test() {
+	// kprintf("\nHello World..!!");
+	/*
+        char p[100];
+        kscanf(p);
+        int i = 0;
+        while(p[i] != '\0') {
+                kprintf("%c", p[i]);
+                i++;
+        }
+        //kprintf("\n %s", p);
+        */
+	
+	// uint64_t addr = open_dir("bin/");
+	// kprintf("\n%p", addr);
+	read_dir("bin/");
+	uint64_t addr = open("bin/hello");
+	kprintf("Address of hello \n%p", addr);
+	char buf[64];
+	int size = read_file(open("bin/hello"), 32, (uint64_t) buf);
+	kprintf("Size of hello.c %d", size);
+	
 }
 
 void start(uint32_t* modulep, void* physbase, void* physfree)
@@ -37,33 +57,17 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 
 	// Will initialize the timer interrupt
         init_timer(100);
-
-	// uint64_t message = stoi("023323232");	
-	// kprintf("\n String to integer check: %d", message);
 	
-	// uint64_t decimal = octalToDecimal(232);
-	// kprintf("\nOctal 232 to decimal is: %d", decimal);
-
-	// int res = strcmp("HELLO","dsjhfkdhfkjhfjkshfd");
-	// kprintf("\nComparing two strings: %d", res);
-
-	//get_file_sections("/bin/hello/hello.o");
+	// init tarfs
+	tarfs_init();
 	
 	// calling the first context switch
-	// first_context_switch();
-	// initContextSwitch();
+	initContextSwitch();
 	
-	/*	
-	char p[100];
-	kscanf(p);
-	int i = 0;
-	while(p[i] != '\0') {
-		kprintf("%c", p[i]);
-		i++;
-	}
-	//kprintf("\n %s", p);
-	*/
-	showShell();
+	// showShell();
+	
+	//test();
+		
 	while(1);
 }
 

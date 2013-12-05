@@ -15,11 +15,11 @@ int main(int argc, char* argv[], char* envp[]) {
         *video_memory = 0x0f;
         video_memory += 1;
 	*/
-	
+/*	
 	printf("Hello World..!!\n");
 	printf("Hello World..!!\n");
 	
-	char buffer[100];
+	char* buffer = (char* )malloc(512);
 	scanf(buffer);
 	int i = 0;
 	while(buffer[i] != '\0'){
@@ -28,10 +28,19 @@ int main(int argc, char* argv[], char* envp[]) {
 	}
 	int id = getpid();
 	printf("\nPid: %d", id);
-	//uint64_t addr = (uint64_t)malloc(4096);
-	//printf("%p", addr);
-	//exit(1);
-	//asm("int $0x80");
+*/	
+	// uint64_t addr = opendir("bin/hello/");
+        // printf("\n%p", addr);
+        readdir("bin/");
+        
+	/*
+	addr = open("bin/hello");
+        printf("\nAddress of hello \n%p", addr);
+        
+	char buf[512];
+        int size = read(open("bin/hello/hello.c"), 32, (uint64_t) buf);
+        printf("\nSize of hello.c %d", size);
+	*/
 	while(1);
 	return 0;
 }

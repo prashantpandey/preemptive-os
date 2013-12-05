@@ -159,10 +159,22 @@ void handler_syscall() {
 	                );	
 		}
 		else if(syscall_no == 5) {					// exit 
-			returnToKernel();			
+			uint64_t status;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(status)
+                                :
+                                );
+			returnToKernel(status);			
 		}
 		else if(syscall_no == 6) {					// fork
-			// TODO: fork system call
+			int childId = fork();
+			__asm__ __volatile__(
+                                "movq %0, %%rax;"
+                                :
+                                :"a" ((uint64_t)childId)
+                                :"cc", "memory"
+                        );
 		}
 		else if(syscall_no == 7) {					// execvpe
 			// TODO: execvpe system call
@@ -192,7 +204,7 @@ void handler_syscall() {
 			char* dir;
                         __asm__ __volatile__(
                                 "movq %%rbx, %0;"
-                                :"=b"(dir)
+                                :"=b"((char* )dir)
                                 :
                         );
 			read_dir(dir);
@@ -554,5 +566,5 @@ void init_idt()
         lidt();
 
 	// To let hardware interrupts happen
-	__asm__ ("sti");
+	// __asm__ ("sti");
 }

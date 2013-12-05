@@ -103,8 +103,8 @@ extern tarfs_entry tarfs_fs[100];
 
 void tarfs_init();
 
-uint64_t open_dir(char * dir);
-uint64_t read_dir(char * dir);
+uint64_t open_dir(char* dir);
+uint64_t read_dir(char* dir);
 uint64_t open(char * file);
 int read_file(uint64_t file_addr, int size, uint64_t buf);
 #define DIRECTORY 5

@@ -250,23 +250,40 @@ uint64_t open(char * file)
 
 int read_file(uint64_t file_addr, int size, uint64_t buf)
 {
-	struct posix_header_ustar* file_hdr = (struct posix_header_ustar *) file_addr;
-        // kprintf("%s", file_hdr->name);
-        uint64_t file_size =  octalToDecimal(stoi(file_hdr->size));
-        kprintf("\nasd %d %d", file_size, size);
-        if(file_size < size)
-            size = file_size;
-        char* tmp =(char *)buf;
-        char* file_start_addr = (char *)(file_addr + 512);
-        // kprintf("\nsize %d file %x", size, file_start_addr);
-        int i = 0;
-        while(size-- > 0)
-        {
-            tmp[i++] = *file_start_addr++;
-        }
-        tmp[i]='\0';
-        kprintf("\n");
-        kprintf("%s", tmp);
-        return size;
+   	struct posix_header_ustar* file_hdr = (struct posix_header_ustar *) file_addr; 
+    	// kprintf("%s", file_hdr->name);
+    	int file_size =  octalToDecimal(stoi(file_hdr->size));
+    	if(file_size < size)
+        	size = file_size;
+    	char* tmp =(char *)buf;
+    	char* file_start_addr = (char *)(file_addr + 512);
+    	// kprintf("\nsize %d file %x", size, file_start_addr);
+    	int i = 0;
+    	while(size-- > 0)
+    	{
+        	tmp[i++] = *file_start_addr++;
+    	}    
+    	tmp[i]='\0';
+    //	kprintf("\n");
+    //	kprintf("%s", tmp);
+    	return size;
+}
+
+void close(uint64_t file_addr)
+//	kprintf("Inside close file");
+{
+
+	unsigned long* file = (unsigned long* )file_addr;
+	*file = 0;
+	kprintf("\nFile at %p has been closed",file_addr);
+}
+
+void closedir(uint64_t dir_addr)
+//      kprintf("Inside close file");
+{
+
+        unsigned long* dir = (unsigned long* )dir_addr;
+        *dir = 0;
+        kprintf("\nDirectory at %p has been closed",dir_addr);
 }
 

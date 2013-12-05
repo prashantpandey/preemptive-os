@@ -14,6 +14,11 @@
 #include <sys/tarfs.h>
 #include <shell.h>
 
+#define INITIAL_STACK_SIZE 4096
+char stack[INITIAL_STACK_SIZE];
+uint32_t* loader_stack;
+extern char kernmem, physbase;
+
 void test() {
 	// kprintf("\nHello World..!!");
 	/*
@@ -27,10 +32,10 @@ void test() {
         //kprintf("\n %s", p);
         */
 	
-	// uint64_t addr = open_dir("bin/");
+	uint64_t addr = open_dir("bin/");
 	// kprintf("\n%p", addr);
 	read_dir("bin/");
-	uint64_t addr = open("bin/hello");
+	addr = open("bin/hello");
 	kprintf("Address of hello \n%p", addr);
 	char buf[64];
 	int size = read_file(open("bin/hello"), 32, (uint64_t) buf);
@@ -62,19 +67,15 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	tarfs_init();
 	
 	// calling the first context switch
-	initContextSwitch();
+	initContextSwitch((uint64_t *)stack);
 	
+	__asm__ __volatile__("sti");
 	// showShell();
-	
 	//test();
 		
 	while(1);
 }
 
-#define INITIAL_STACK_SIZE 4096
-char stack[INITIAL_STACK_SIZE];
-uint32_t* loader_stack;
-extern char kernmem, physbase;
 
 void boot(void)
 {

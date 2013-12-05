@@ -157,6 +157,7 @@ page* page_alloc(int alloc_flags)
 	return pp;
 }
 
+
 uint64_t kmalloc(uint32_t size)
 {
 	uint32_t temp_size = size;
@@ -324,6 +325,41 @@ pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create)
         }	
 }
 
+uint64_t* kmalloc_user (pml4e* pml4e, uint64_t size) {
+   static uint64_t *bumpPtr=(uint64_t *)0xFFFFF0F080700000;     // start vm from here 
+   uint64_t *ret;
+   ret = bumpPtr; 
+   uint64_t no_of_blocks;
+   pte* pte = NULL;
+   uint64_t i;
+
+   page *pp = NULL;
+
+   no_of_blocks = size/PGSIZE;
+
+   if((size - (size/PGSIZE)*PGSIZE) != 0)
+    no_of_blocks ++ ;
+
+//  printf("1: %p\n",bumpPtr);
+//  printf("blocks %d\n",no_of_blocks);
+
+   while(no_of_blocks) {
+        no_of_blocks--;
+        for (i = 0; i < PAGE_ROUNDOFF(size, PGSIZE);  i+=PGSIZE) {             /*Lab4 Fix */
+             pte = pml4e_walk(pml4e, (char*)bumpPtr, 1); 
+            
+             pp = page_alloc(ALLOC_ZERO);
+             pp->pp_ref++;
+                 
+             *pte = ((uint64_t)page2pa(pp)) | PTE_P | PTE_W | PTE_U;
+             //print("%x-%x",pte,*pte);
+        }                                      
+ bumpPtr += 512; 
+    }   
+
+   return ret;
+}
+
 /* To create the mapping from VA space to PA space for a given size */
 void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, int perm)
 {
@@ -362,7 +398,7 @@ void mem_init()
 	boot_map_region(pml4e_table, KERNBASE + (uint64_t)lphysbase, MEM_LIMIT, (uint64_t)lphysbase, PTE_W | PTE_P | PTE_U);
 		
 	// map the BIOS/Video memory region	
-	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 4096, (uint64_t)0xb8000, PTE_W | PTE_P | PTE_U);
+	boot_map_region(pml4e_table, KERNBASE + (uint64_t)0xb8000, 8192, (uint64_t)0xb8000, PTE_W | PTE_P | PTE_U);
 	
 	//kprintf("\nBoot CR3: %p, %p", boot_cr3, pml4e_table[0x1ff]);
 		

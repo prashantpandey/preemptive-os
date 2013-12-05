@@ -10,6 +10,7 @@ irq0:
             pushq %rdx
             pushq %rsi
             pushq %rdi
+	    pushq %rbp
             pushq %r8
             pushq %r9
             pushq %r10
@@ -18,10 +19,10 @@ irq0:
             pushq %r13
             pushq %r14
             pushq %r15
-            movq  %rsp,%rdi
-            addq  $72, %rdi
+            #movq  %rsp,%rdi
+            #addq  $72, %rdi
             call timer_callback
-	    #call schedule
+	    call switchProcess
             popq %r15
             popq %r14
             popq %r13
@@ -30,6 +31,7 @@ irq0:
             popq %r10
             popq %r9
             popq %r8
+	    popq %rbp
             popq %rdi
             popq %rsi
             popq %rdx

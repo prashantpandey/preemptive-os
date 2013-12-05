@@ -12,7 +12,7 @@ int strcmp(const char *s1, const char *s2);
 int strncmp(const char *s1, const char *s2, size_t size);
 char*  strchr(const char *s, char c);
 char*  strfind(const char *s, char c);
-
+char* strcat(char *dst, const char *src);
 //void*  memset(void *dst, uint64_t c, size_t len);
 /* no memcpy - use memmove instead */
 //void*  memmove(void *dst, const void *src, size_t len);

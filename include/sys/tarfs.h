@@ -107,6 +107,8 @@ uint64_t open_dir(char* dir);
 uint64_t read_dir(char* dir);
 uint64_t open(char * file);
 int read_file(uint64_t file_addr, int size, uint64_t buf);
+void close(uint64_t file_addr);
+void closedir(uint64_t dir_addr);
 #define DIRECTORY 5
 #define FILE_TYPE 0
 

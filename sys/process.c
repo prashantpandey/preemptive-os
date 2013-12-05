@@ -10,13 +10,22 @@
 
 static void load_icode(task* t, char* filename, uint32_t size);
 
+static int processCnt = 0;
+static int ltick = 0;
+static int timertick = 100;
 static uint32_t ids = 0;
 extern pml4e *pml4e_table;
 extern uint64_t boot_cr3;
+extern void irq0();
+
+uint64_t reg[14]; // set of registers
+uint64_t child_ret_addr;
+uint64_t child_stack_addr;
+uint64_t child_pid=0;
 
 static task kernelProcess;
 runQueue* currProcess;
-bool firstSwitch = true;
+volatile bool firstSwitch = true;
 bool stackAdj = false;
 
 void function1();
@@ -34,6 +43,7 @@ void removeProcess(runQueue* currPr) {
 		temp = temp->next;
 	}
 	temp->next = temp->next->next;
+	processCnt--;
 }
 
 runQueue* fetchNextRunProcess() {
@@ -51,7 +61,7 @@ void putProcessToWait() {
 }
 
 // Will return load the kernel process after the exit call
-void returnToKernel() {
+void returnToKernel(int status) {
 	__asm__ __volatile__(                             // save the context of curr Process
         	"movq %%rsp, %0;"
                 :"=m"(kernelProcess.rsp)
@@ -59,53 +69,19 @@ void returnToKernel() {
                 :"memory"
         );
 
+	currProcess->process.state = status;
 	runQueue* temp = currProcess;
         currProcess = fetchNextRunProcess();                        // move the curr Process to the next process in runQ
-	
 	removeProcess(temp);					// will remove the process from the runQueue	
 	
-        //task next = currProcess->process;
         asm volatile("movq %0, %%cr3":: "a"(kernelProcess.cr3));
 
-       	__asm__ __volatile__ (
-                "movq %0, %%rsp;"
-                :
-                :"m"(kernelProcess.rsp)
-       		:"memory"
-       );
-
-       tss.rsp0 = (uint64_t)kernelProcess.stack[63];
-
-       // stack adjustment
-       if(stackAdj) {
-		__asm__ __volatile__ (
-			"addq $0x08,%rsp;"\
-			"popq %rbx;" \
-			"popq %rbx;" \
-			"popq %rbp;" \
-			"popq %r12;" \
-			"popq %r13;"
-		);
-        }
-        stackAdj = true;
-
-        __asm__ __volatile__ (
-                        "    popq %r15;"  \
-                        "    popq %r14;"  \
-                        "    popq %r13;"  \
-                        "    popq %r12;"  \
-                        "    popq %r11;"  \
-                        "    popq %r10;" \
-                        "    popq %r9;" \
-                        "    popq %r8;" \
-                        "    popq %rdi;" \
-                        "    popq %rsi;" \
-                        "    popq %rdx;" \
-                        "    popq %rcx;" \
-                        "    popq %rbx;" \
-                        "    popq %rax;" \
-                "iretq;");
-//        __asm__ __volatile__("sti");
+	firstSwitch = true;
+	__asm__ __volatile__ (
+		"popq %rbx;"\
+		"popq %rax;"\
+		"jmp *%rax;"
+	);
 }
 
 // To fetch the kernel virtual address
@@ -121,25 +97,52 @@ void* get_kva(page *pp)
 
 // Will create a circular linked list for process in the run queue
 void createProcessLc(void* function) {
-        runQueue* newPr = (runQueue *)get_kva(page_alloc(0));
+	runQueue* newPr = (runQueue *)get_kva(page_alloc(0));
 
         // create the process structure
         page* pp = page_alloc(0);
         uint64_t* pml4e_p = (uint64_t* )get_kva(pp);                    // initiaize the memory str for process
+        int i = 0;
+        for(i = 0; i < 512; i++) {
+                pml4e_p[i] = 0;
+        }
         pml4e_p[511] = pml4e_table[511];                        // copy the kernel address space in process VM
 
         newPr->process.pid = ids++;
-	newPr->process.state = 0;
+        newPr->process.ppid = 0;
+        newPr->process.state = 0;
+        newPr->process.sleep_time = 0;
         newPr->process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);                // init cr3
         newPr->process.pml4e_p = pml4e_p;
 
-        newPr->process.stack[59] = (uint64_t)function;
-        newPr->process.rsp = (uint64_t)&newPr->process.stack[45];
+        newPr->process.mm = (struct mm_struct *)((char *)(&newPr->process + 1));
+        newPr->process.mm->count = 0;
+        newPr->process.mm->mmap = NULL;
 
-        newPr->process.stack[63] = 0x23 ;                              //  Data Segment
-        newPr->process.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
-        newPr->process.stack[61] = 0x246;                           //  EFlags
-        newPr->process.stack[60] = 0x1b ;                              // Code Segment
+        newPr->process.stack = kmalloc_user((pml4e *)newPr->process.pml4e_p,512);
+
+        uint64_t* pte = pml4e_walk((pml4e *)newPr->process.pml4e_p, (char*)newPr->process.stack, 1);
+        kprintf("Page adress=%x-%x" ,pte ,*pte);
+
+        __asm__ __volatile__("movq %0, %%cr3":: "a"(newPr->process.cr3));
+
+        newPr->process.kstack[506] = 1; newPr->process.kstack[505] = 2;  newPr->process.kstack[504] = 3;  newPr->process.kstack[503] = 4;
+        newPr->process.kstack[502] = 5; newPr->process.kstack[501] = 6;  newPr->process.kstack[500] = 7;  newPr->process.kstack[499] = 8;
+        newPr->process.kstack[498] = 9; newPr->process.kstack[497] = 10; newPr->process.kstack[496] = 11; newPr->process.kstack[495] = 12;
+        newPr->process.kstack[494] = 13; newPr->process.kstack[493] = 14; newPr->process.kstack[492] = 15;
+
+        newPr->process.kstack[491] = (uint64_t)(&irq0+34);
+        newPr->process.rsp = (uint64_t)&newPr->process.kstack[490];
+
+        newPr->process.kstack[511] = 0x23 ;                              //  Data Segment
+        newPr->process.kstack[510] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
+	newPr->process.kstack[509] = 0x246;                           //  EFlags
+        newPr->process.kstack[508] = 0x1b ;                              // Code Segment
+
+        // load_icode(&(newPr->process), file, 0);
+        newPr->process.kstack[507] = (uint64_t)function;
+
+        lcr3(boot_cr3);
 
         if(ids == 2) {
                 runQ = newPr;
@@ -155,6 +158,8 @@ void createProcessLc(void* function) {
                 temp->next = newPr;
                 newPr->next = runQ;
         }
+        processCnt++;
+	
 }
 
 // Will create a circular linked list for process in the run queue
@@ -164,23 +169,48 @@ void createProcess(char* file) {
 	// create the process structure
 	page* pp = page_alloc(0);
 	uint64_t* pml4e_p = (uint64_t* )get_kva(pp);			// initiaize the memory str for process
+	int i = 0;
+	for(i = 0; i < 512; i++) {
+		pml4e_p[i] = 0;	
+	}
 	pml4e_p[511] = pml4e_table[511];			// copy the kernel address space in process VM
 	
 	newPr->process.pid = ids++;
+	newPr->process.ppid = 0;
 	newPr->process.state = 0;
+	newPr->process.sleep_time = 0;
 	newPr->process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);		// init cr3
 	newPr->process.pml4e_p = pml4e_p;
 
-        load_icode(&(newPr->process), file, 0);	
-	
-	newPr->process.stack[59] = (uint64_t)newPr->process.entry;
-        newPr->process.rsp = (uint64_t)&newPr->process.stack[45];
+	newPr->process.mm = (struct mm_struct *)((char *)(&newPr->process + 1));
+	newPr->process.mm->count = 0;
+    	newPr->process.mm->mmap = NULL;
 
-        newPr->process.stack[63] = 0x23 ;                              //  Data Segment    
-        newPr->process.stack[62] = (uint64_t)(kmalloc(4096) + (uint64_t)4096);      //  RIP
-        newPr->process.stack[61] = 0x246;                           //  EFlags
-        newPr->process.stack[60] = 0x1b ;                              // Code Segment
-		
+    	newPr->process.stack = kmalloc_user((pml4e *)newPr->process.pml4e_p,512);
+
+	uint64_t* pte = pml4e_walk((pml4e *)newPr->process.pml4e_p, (char*)newPr->process.stack, 1);
+    	kprintf("Page adress=%x-%x" ,pte ,*pte);
+	
+	__asm__ __volatile__("movq %0, %%cr3":: "a"(newPr->process.cr3));
+
+        newPr->process.kstack[506] = 1; newPr->process.kstack[505] = 2;  newPr->process.kstack[504] = 3;  newPr->process.kstack[503] = 4;
+        newPr->process.kstack[502] = 5; newPr->process.kstack[501] = 6;  newPr->process.kstack[500] = 7;  newPr->process.kstack[499] = 8;
+        newPr->process.kstack[498] = 9; newPr->process.kstack[497] = 10; newPr->process.kstack[496] = 11; newPr->process.kstack[495] = 12;
+        newPr->process.kstack[494] = 13; newPr->process.kstack[493] = 14; newPr->process.kstack[492] = 15;
+
+        newPr->process.kstack[491] = (uint64_t)(&irq0+34);
+        newPr->process.rsp = (uint64_t)&newPr->process.kstack[490];
+
+	newPr->process.kstack[511] = 0x23 ;                              //  Data Segment    
+        newPr->process.kstack[510] = (uint64_t)(&newPr->process.stack[511]);      //  RIP
+        newPr->process.kstack[509] = 0x246;                           //  EFlags
+        newPr->process.kstack[508] = 0x1b ;                              // Code Segment
+        
+	load_icode(&(newPr->process), file, 0);	
+        newPr->process.kstack[507] = (uint64_t)newPr->process.entry;
+
+	lcr3(boot_cr3);	
+	
 	if(ids == 2) {
 		runQ = newPr;
 		runQ->next = runQ;
@@ -195,40 +225,43 @@ void createProcess(char* file) {
 		temp->next = newPr;
 		newPr->next = runQ;
 	}
+	processCnt++;
 }
 
 // Will switch to first process in the run Queue
-void initContextSwitch() {
+void initContextSwitch(uint64_t* stack) {
 	
 	// create kernal
 	kernelProcess.pid = ids++;
 	kernelProcess.state = 0;
+	kernelProcess.stack = (uint64_t *) stack;
 	kernelProcess.cr3 = boot_cr3;
 	kernelProcess.pml4e_p = pml4e_table;
 		
 	// create two user space process
 	createProcess("bin/hello");
 	createProcess("bin/hello1");
+	
 	// createProcess("bin/hello2");
 	// createProcess("bin/hello3");
 	
-	// createProcessLc(&function1);
-	// createProcessLc(&function2);
+	//createProcessLc(&function1);
+	//createProcessLc(&function2);
 
-	firstSwitch = false;		// unset the first context switch flag
-	
 	currProcess = runQ;		// init the current Process with head of runQ
-	task pr = currProcess->process;
 
+	__asm__ __volatile__ ("mov $0x2b,%ax");
+  	__asm__ __volatile__ ("ltr %ax");
+	
+	/*
+	task pr = currProcess->process;
 	__asm__ __volatile__("movq %0, %%cr3":: "a"(pr.cr3));		// load the cr3 reg with the cr3 of process
 	// kprintf("I am in process virtual address space \n");
-	
 	__asm__ __volatile__ (						
             "movq %0, %%rsp;" //load next's stack in rsp
             :
             :"r"(pr.rsp)
     	);								
-		
 	// pop all the general purpose registers
         __asm__ __volatile__ (
                         "    popq %r15;"  \
@@ -246,93 +279,73 @@ void initContextSwitch() {
                         "    popq %rbx;" \
                         "    popq %rax;" 
               );
-//	__asm__ __volatile__("sti");	
+	// __asm__ __volatile__("sti");	
 
 	tss.rsp0 = (uint64_t)&pr.stack[63];  
-
     	__asm__ __volatile__("mov $0x2b,%ax");
     	__asm__ __volatile__("ltr %ax");
-
     	__asm__ __volatile__("iretq");
+	*/
 }
 
 // Will switch the process the processes in round robin manner using the circular
 // run Queue
 void switchProcess() {
-	if(firstSwitch) {
-		initContextSwitch();		
-	}
-	else {
-		// code commented because the push operation is done from the timer interrupt handler
-		/*        				
-		__asm__ __volatile__ (
-        		"pushq %rax;"\
-        		"pushq %rbx;"\
-        		"pushq %rcx;"\
-	        	"pushq %rdx;"\
-        		"pushq %rsi;"\
-        		"pushq %rdi;"\
-        		"pushq %r8;"\
-            		"pushq %r9;"
-            		"pushq %r10;"\
-            		"pushq %r11;"
-            		"pushq %r12;"
-            		"pushq %r13;"
-            		"pushq %r14;"
-            		"pushq %r15;"
-        	);
-		*/
-		__asm__ __volatile__(					// save the context of curr Process
-            		"movq %%rsp, %0;"
-            		:"=m"(currProcess->process.rsp)
-            		:
-            		:"memory"
-        	);
-    			
-		currProcess = fetchNextRunProcess();			// move the curr Process to the next process in runQ
-		
-		//task next = currProcess->process;
-		asm volatile("movq %0, %%cr3":: "a"(currProcess->process.cr3));	
-    	
-		__asm__ __volatile__ (
-            		"movq %0, %%rsp;"
-            		:
-            		:"m"(currProcess->process.rsp)
-            		:"memory"
-        	);
-		
-		tss.rsp0 = (uint64_t)currProcess->process.stack[63];
-       		       // stack adjustment
-       if(stackAdj) {
-                __asm__ __volatile__ (
-                        "addq $0x08,%rsp;" \
-                        "popq %rbx;" \
-                        "popq %rbx;" \
-                        "popq %rbp;" \
-                        "popq %r12;" \
-                        "popq %r13;"
-                );
-        }
-        stackAdj = true;
+	ltick++;
+	if(ltick == timertick) {
+		int i = 0;
+		runQueue* temp = currProcess;
+		for(i = 0; i < processCnt; i++) {
+			if(temp->process.sleep_time > 0) {
+				temp->process.sleep_time--;
+			}
+			temp = temp->next;
+		}	
+		if(firstSwitch) {
+		        __asm__ __volatile__(
+		                "movq %%rsp, %0;"
+                		:"=m"(kernelProcess.rsp)
+		                :   
+               	 		:"memory"
+		        );
+			
+		        __asm__ __volatile__ ("movq %0, %%cr3":: "a"(currProcess->process.cr3));
+		        kprintf("\nFirst context switch");
 
-        __asm__ __volatile__ (
-                        "    popq %r15;"  \
-                        "    popq %r14;"  \
-                        "    popq %r13;"  \
-                        "    popq %r12;"  \
-                        "    popq %r11;"  \
-                        "    popq %r10;" \
-                        "    popq %r9;" \
-                        "    popq %r8;" \
-                        "    popq %rdi;" \
-                        "    popq %rsi;" \
-                        "    popq %rdx;" \
-                        "    popq %rcx;" \
-                        "    popq %rbx;" \
-                        "    popq %rax;" \
-                "iretq;"); 
-	
-//        	__asm__ __volatile__("sti");  
+			__asm__ __volatile__ (
+				"movq %0, %%rsp;"
+			        :   
+			        :"m"(currProcess->process.rsp)
+                		:"memory"
+        		);
+			
+			firstSwitch = false;
+			tss.rsp0 =(uint64_t)(&(currProcess->process.kstack[511]));
+			ltick = 0;
+		}			
+		else {
+			volatile runQueue* prev = currProcess;
+			// int old = currProcess->process.pid;
+	                currProcess = fetchNextRunProcess();
+			__asm__ __volatile__(
+				"movq %%rsp, %0;"
+                		:"=m"(prev->process.rsp)
+		                :   
+	               	 	:"memory"
+			);
+		        __asm__ __volatile__ ("movq %0, %%cr3":: "a"(currProcess->process.cr3));
+			
+			kprintf("\nSecond context switch: %d", currProcess->process.pid);
+			__asm__ __volatile__ (
+				"movq %0, %%rsp;"
+			        :   
+			        :"m"(currProcess->process.rsp)
+                		:"memory"
+			);
+			//kprintf("\nprev: %d next: %d", old, currProcess->process.pid);
+                        tss.rsp0 =(uint64_t)(&(currProcess->process.kstack[511]));
+			ltick = 0;			
+		}
 	}
 }
 
@@ -532,7 +545,7 @@ void function1() {
         	kprintf("\nfunction 1: %d", i++);
         	//switchProcess();
 		//schedule();
-        	yield();
+        	//yield();
    	}
 }
 
@@ -543,7 +556,7 @@ void function2() {
         	kprintf("\nfunction 2: %d", i++);
         	//switchProcess();
 		//schedule();
-        	yield();
+        	// yield();
    	}
 }
 
@@ -576,17 +589,17 @@ static void region_alloc(task* t, void* va, uint32_t len) {
     	}
 }
 
-vma* malloc_vma(mm* mm)
+struct vm_area_struct* malloc_vma(struct mm_struct* mm)
 {
-        vma *vm_tail;
+        struct vm_area_struct* vm_tail;
         char *tmp;
         if(mm->mmap == NULL)  // first vma allocate one page for it
         {
                 tmp=(char *)kmalloc(1); // this will allocate one page so just pass size>0
-                vm_tail = (vma *)tmp;
-                mm->mmap = vm_tail;
+                vm_tail = (struct vm_area_struct *)tmp;
+                mm->mmap = vm_tail; 
                 mm->count += 1;
-                return (vma *)tmp;
+                return (struct vm_area_struct *)tmp;
         }
         else
         {
@@ -594,8 +607,8 @@ vma* malloc_vma(mm* mm)
                 while(vm_tail->vm_next != NULL)
                         vm_tail = vm_tail->vm_next;
 
-                tmp = (char *)vm_tail + sizeof(vma);  // go to the next vma in the same page (base +size)
-                vm_tail->vm_next = (vma *)tmp;
+                tmp = (char *)vm_tail + sizeof(struct vm_area_struct);  // go to the next vma in the same page (base +size)
+                vm_tail->vm_next = (struct vm_area_struct *)tmp;
                 mm->count += 1;
                 return (struct vm_area_struct *)tmp;
    }
@@ -635,8 +648,7 @@ static void load_icode(task* t, char* filename, uint32_t size) {
                 		// Switch back to kernel's address space
                 		lcr3(boot_cr3);
 				
-				/*				
-				vma* vm = malloc_vma(t->mm);
+				struct vm_area_struct* vm = malloc_vma(t->mm);
                                 vm->vm_start = ph->p_vaddr;
                                 vm->vm_end = vm->vm_start + ph->p_memsz;
                                 vm->vm_mmsz = ph->p_memsz;
@@ -644,7 +656,7 @@ static void load_icode(task* t, char* filename, uint32_t size) {
                                 vm->vm_file =(uint64_t)elf;
                                 vm->vm_flags = ph->p_flags;
                                 vm->vm_offset = ph->p_offset; 
-           			*/
+           				
 			}
         	}
  
@@ -654,9 +666,9 @@ static void load_icode(task* t, char* filename, uint32_t size) {
  
         // Magic to start executing environment at its address.
         	t->entry = elf->e_entry;
-    		/*
-		t->heap_vma = (vma *)kmalloc(1); // allocate a separate page for heap vma, however this is waste
-                vma *tmp = t->mm->mmap;
+
+		t->heap_vma = (struct vm_area_struct *)kmalloc(1); // allocate a separate page for heap vma, however this is waste
+                struct vm_area_struct* tmp = t->mm->mmap;
                 while(tmp->vm_next != NULL)  {
                         tmp = tmp->vm_next;  // go to the last vma
                 }
@@ -665,7 +677,111 @@ static void load_icode(task* t, char* filename, uint32_t size) {
                 t->heap_vma->vm_mmsz = 0x1000;
 
                 region_alloc(t, (void *)t->heap_vma->vm_start, t->heap_vma->vm_mmsz);
-		*/
+		t->mm->mmap->vm_start = 0x400000;
 	}
 }
+
+int fork() {
+	runQueue* parent = currProcess;
+	runQueue* childPr = (runQueue *)get_kva(page_alloc(0));	
+	if(!childPr) 
+		return 0;
+
+    	page  *pp1 = page_alloc(0);
+        uint64_t* pml4e_p = (uint64_t* )get_kva(pp1);
+	int i = 0;
+        for(i = 0; i < 512; i++) {
+                pml4e_p[i] = 0;
+        }	
+	pml4e_p[511] = pml4e_table[511];
+
+    	page  *pp2 = page_alloc(0);
+	
+        childPr->process.mm = (struct mm_struct *)((char *)(&childPr->process + 1));
+        childPr->process.mm->count = 0;
+        childPr->process.mm->mmap = NULL;
+	
+        childPr->process.pid = ids++;
+        childPr->process.ppid = parent->process.pid;
+        childPr->process.state = 0;
+        childPr->process.sleep_time = 0;
+        childPr->process.cr3 = (uint64_t)PADDR((uint64_t)pml4e_p);                // init cr3
+        childPr->process.pml4e_p = pml4e_p;
+	
+	child_pid = childPr->process.pid;
+
+	uint64_t* tmpStack = (uint64_t *)get_kva(pp2);
+	int j = 0;
+	for(j = 0; j < 512; j++) {
+		tmpStack[j] = parent->process.stack[j];
+		// kprintf(" %x %x ",tmpStack[j], parent->process.stack[j]);
+	}
+	
+	__asm__ __volatile__ ("movq %0, %%cr3":: "a"(childPr->process.cr3));
+	
+	childPr->process.stack = parent->process.stack;
+        boot_map_region( (pml4e *)childPr->process.pml4e_p, (uint64_t)childPr->process.stack, 4096, (uint64_t)PADDR((uint64_t)tmpStack), PTE_W | PTE_P | PTE_U);
+	
+        childPr->process.kstack[511] = 0x23 ;                              //  Data Segment
+        childPr->process.kstack[510] = parent->process.kstack[508];      //  RIP
+        childPr->process.kstack[509] = 0x200286;                           //  EFlags
+        childPr->process.kstack[508] = 0x1b ;                              // Code Segment
+	childPr->process.kstack[507] = parent->process.kstack[505];
+
+	childPr->process.kstack[491] = (uint64_t)(&irq0+34);
+	childPr->process.kstack[490] = 16;
+	
+	childPr->process.kstack[506] = 0; //rax return to child           
+
+    	childPr->process.kstack[505] = parent->process.kstack[503]; 
+    	childPr->process.kstack[504] = parent->process.kstack[502]; 
+    	childPr->process.kstack[503] = parent->process.kstack[501];  
+    	childPr->process.kstack[502] = parent->process.kstack[500];  
+    	childPr->process.kstack[501] = parent->process.kstack[499];   
+    	childPr->process.kstack[500] = parent->process.kstack[498];   
+    	childPr->process.kstack[499] = parent->process.kstack[497];  
+    	childPr->process.kstack[498] = parent->process.kstack[496];  
+    	childPr->process.kstack[497] = parent->process.kstack[495];  
+    	childPr->process.kstack[496] = parent->process.kstack[494];  
+    	childPr->process.kstack[495] = parent->process.kstack[493];  
+    	childPr->process.kstack[494] = parent->process.kstack[492];  
+    	childPr->process.kstack[493] = parent->process.kstack[491];  
+    	childPr->process.kstack[492] = parent->process.kstack[490];
+
+	childPr->process.rsp = (uint64_t)(&childPr->process.kstack[490]);
+	
+        struct vm_area_struct* parent_vm = parent->process.mm->mmap;
+        struct vm_area_struct* child_vm;
+	
+	while(parent_vm != NULL) {
+		child_vm = malloc_vma(childPr->process.mm);
+	        child_vm->vm_start = parent_vm->vm_start;
+        	child_vm->vm_end = parent_vm->vm_end;
+        	child_vm->vm_mmsz = parent_vm->vm_mmsz;
+        	child_vm->vm_next = NULL;
+	        child_vm->vm_file = parent_vm->vm_file;
+        	child_vm->vm_flags = parent_vm->vm_flags;
+	        child_vm->vm_offset = parent_vm->vm_offset;
+		
+		region_alloc(&childPr->process, (void*) parent_vm->vm_start, parent_vm->vm_mmsz);
+		int j = 0;
+	        for(j=0; j<parent_vm->vm_mmsz; j++)
+	        {
+            		*((uint64_t *)(parent_vm->vm_start + j)) = *((uint64_t *)((uint64_t)parent_vm->vm_file + parent_vm->vm_offset + j));
+        	}
+        	parent_vm = parent_vm->vm_next;
+	}
+     	childPr->process.heap_vma = (struct vm_area_struct *)kmalloc(1);
+    	struct vm_area_struct *tmp = childPr->process.mm->mmap;
+	while(tmp->vm_next != NULL)  {
+		tmp = tmp->vm_next;  // go to the last vma
+	}
+    	childPr->process.heap_vma->vm_start = childPr->process.heap_vma->vm_end = ALIGN_DOWN((uint64_t)(tmp->vm_end + 0x1000));  // start from next page (keep the distance)
+    	childPr->process.heap_vma->vm_mmsz = 0x1000;
+	region_alloc(&childPr->process, (void *)childPr->process.heap_vma->vm_start, childPr->process.heap_vma->vm_mmsz);
+	asm volatile("movq %0, %%cr3":: "b"(parent->process.cr3));
+
+	return child_pid;
+}	
+
 

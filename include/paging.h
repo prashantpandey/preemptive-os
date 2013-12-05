@@ -134,7 +134,9 @@ void page_fault();
 void map_physical_address(uint32_t* modulep, void* physbase, void* physfree);
 
 page* page_alloc(int alloc_flags);
+pte* pml4e_walk(pml4e* pml4e_t, const void* va, int create);
+void boot_map_region(pml4e* pml4e_t, uint64_t la, uint32_t size, uint64_t pa, int perm);
 uint32_t page_insert(pml4e* pml4e_t, page* pp, uint64_t va, int perm);
 uint64_t kmalloc(uint32_t size);
-
+uint64_t* kmalloc_user (pml4e* pml4e,uint64_t size);
 #endif

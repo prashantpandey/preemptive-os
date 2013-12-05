@@ -8,6 +8,18 @@
 // \---          --/                 \-- PDPE(va) -/ \--- PDE(va) ---/\---- PTE(va) ----/\------PGOFF(va) --------/
 // \-----------------------------------  PGNUM(va) ---------------------------------------------/
 
+#define ROUNDDOWN(a, n)                                         \
+({                                                              \
+        uint64_t __a = (uint64_t) (a);                          \
+        (typeof(a)) (__a - __a % (n));                          \
+})
+// Round up to the nearest multiple of n
+#define ROUNDUP(a, n)                                           \
+({                                                              \
+        uint64_t __n = (uint64_t) (n);                          \
+        (typeof(a)) (ROUNDDOWN((uint64_t) (a) + __n - 1, __n)); \
+})
+
 #define PAGE_TABLE_ALIGNLENT 0x1000
  
 /* mask out bits under page size */

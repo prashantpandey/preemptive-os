@@ -77,6 +77,8 @@ void first_context_switch();
 void addPagesMalloc(void* va, int num);
 void returnToKernel();
 void putProcessToWait();
+uint64_t execvpe(char* arg1,uint64_t arg2, uint64_t arg3);
+void* malloc(uint32_t size);
 
 void schedule();
 void switch_to(task* prev, task* next);

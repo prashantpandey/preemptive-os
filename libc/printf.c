@@ -10,7 +10,7 @@ typedef __builtin_va_list va_list;
 
 
 // Will return the length of the string
-unsigned int strlen(const char *str)
+unsigned int strlenp(const char *str)
 {
         int i = 0;
         while(str[i] != '\0')
@@ -154,7 +154,7 @@ int printf(const char *fmt, ...)
                         case 'd':
 				i = 0;
                                 printf_integer(va_arg(args, int), str_temp);
-                                len = strlen(str_temp);
+                                len = strlenp(str_temp);
                                 while(i < len)
 				{
                                         str[cnt++] = str_temp[i++];
@@ -164,7 +164,7 @@ int printf(const char *fmt, ...)
                         case 's':
 				i = 0;
                                 str_temp = va_arg(args, char [1024]);
-                                len = strlen(str_temp);
+                                len = strlenp(str_temp);
                                 while(i < len)
                                 {
                                         str[cnt++] = str_temp[i++];
@@ -174,7 +174,7 @@ int printf(const char *fmt, ...)
                         case 'x':
 				i = 0;
                                 printf_hexadecimal(va_arg(args, int), str_temp);
-                                len = strlen(str_temp);
+                                len = strlenp(str_temp);
                                 while(i < len)
                                 {
                                         str[cnt++] = str_temp[i++];
@@ -184,7 +184,7 @@ int printf(const char *fmt, ...)
                         case 'p':
 				i = 0;
                                 printf_hexadecimal(va_arg(args, unsigned long), str_temp);
-                                len = strlen(str_temp);
+                                len = strlenp(str_temp);
                                 while(i < len)
                                 {
                                         str[cnt++] = str_temp[i++];

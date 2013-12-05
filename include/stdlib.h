@@ -9,6 +9,7 @@ void exit(int status);
 void* malloc(uint32_t size);
 int getpid();
 int fork();
+int execvpe (const char *filename, char *const argv[], char *const env[]);
 
 uint64_t opendir(char* dir);
 uint64_t readdir(char* dir);

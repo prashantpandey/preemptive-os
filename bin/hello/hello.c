@@ -18,7 +18,7 @@ int main(int argc, char* argv[], char* envp[]) {
 	
 	printf("\nProcess 1\n");
 	// printf("Hello World..!!\n");
-/*	
+	
 	char* buffer = (char* )malloc(512);
 	scanf(buffer);
 	int i = 0;
@@ -28,7 +28,7 @@ int main(int argc, char* argv[], char* envp[]) {
 	}
 	int id = getpid();
 	printf("\nPid: %d", id);
-*/	
+	
 	uint64_t addr = opendir("bin/");
         printf("\n%p", addr);
 	closedir(addr);

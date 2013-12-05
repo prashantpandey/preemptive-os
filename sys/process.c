@@ -5,6 +5,7 @@
 #include <sys/gdt.h>
 #include <sys/tarfs.h>
 #include <common.h>
+#include <string.h>
 
 #define yield() __asm__ __volatile__("int $0x90")
 
@@ -121,8 +122,8 @@ void createProcessLc(void* function) {
 
         newPr->process.stack = kmalloc_user((pml4e *)newPr->process.pml4e_p,512);
 
-        uint64_t* pte = pml4e_walk((pml4e *)newPr->process.pml4e_p, (char*)newPr->process.stack, 1);
-        kprintf("Page adress=%x-%x" ,pte ,*pte);
+        // uint64_t* pte = pml4e_walk((pml4e *)newPr->process.pml4e_p, (char*)newPr->process.stack, 1);
+        // kprintf("Page adress=%x-%x" ,pte ,*pte);
 
         __asm__ __volatile__("movq %0, %%cr3":: "a"(newPr->process.cr3));
 
@@ -163,7 +164,7 @@ void createProcessLc(void* function) {
 }
 
 // Will create a circular linked list for process in the run queue
-void createProcess(char* file) {
+runQueue* createProcess(char* file) {
 	runQueue* newPr = (runQueue *)get_kva(page_alloc(0));
 
 	// create the process structure
@@ -188,8 +189,8 @@ void createProcess(char* file) {
 
     	newPr->process.stack = kmalloc_user((pml4e *)newPr->process.pml4e_p,512);
 
-	uint64_t* pte = pml4e_walk((pml4e *)newPr->process.pml4e_p, (char*)newPr->process.stack, 1);
-    	kprintf("Page adress=%x-%x" ,pte ,*pte);
+	// uint64_t* pte = pml4e_walk((pml4e *)newPr->process.pml4e_p, (char*)newPr->process.stack, 1);
+    	// kprintf("Page adress=%x-%x" ,pte ,*pte);
 	
 	__asm__ __volatile__("movq %0, %%cr3":: "a"(newPr->process.cr3));
 
@@ -207,7 +208,8 @@ void createProcess(char* file) {
         newPr->process.kstack[508] = 0x1b ;                              // Code Segment
         
 	load_icode(&(newPr->process), file, 0);	
-        newPr->process.kstack[507] = (uint64_t)newPr->process.entry;
+        newPr->process.heap_vma->vm_end = newPr->process.heap_vma->vm_start;
+	newPr->process.kstack[507] = (uint64_t)newPr->process.entry;
 
 	lcr3(boot_cr3);	
 	
@@ -226,6 +228,7 @@ void createProcess(char* file) {
 		newPr->next = runQ;
 	}
 	processCnt++;
+	return newPr;
 }
 
 // Will switch to first process in the run Queue
@@ -239,8 +242,8 @@ void initContextSwitch(uint64_t* stack) {
 	kernelProcess.pml4e_p = pml4e_table;
 		
 	// create two user space process
-	createProcess("bin/hello");
-	createProcess("bin/hello1");
+	createProcess("bin/shell");
+	// createProcess("bin/hello1");
 	
 	// createProcess("bin/hello2");
 	// createProcess("bin/hello3");
@@ -310,7 +313,7 @@ void switchProcess() {
 		        );
 			
 		        __asm__ __volatile__ ("movq %0, %%cr3":: "a"(currProcess->process.cr3));
-		        kprintf("\nFirst context switch");
+		        // kprintf("\nFirst context switch");
 
 			__asm__ __volatile__ (
 				"movq %0, %%rsp;"
@@ -335,7 +338,7 @@ void switchProcess() {
 			);
 		        __asm__ __volatile__ ("movq %0, %%cr3":: "a"(currProcess->process.cr3));
 			
-			kprintf("\nSecond context switch: %d", currProcess->process.pid);
+			//kprintf("\nSecond context switch: %d", currProcess->process.pid);
 			__asm__ __volatile__ (
 				"movq %0, %%rsp;"
 			        :   
@@ -574,8 +577,8 @@ void addPagesMalloc(void* va, int num) {
 
 // Will allocate a region for the user program
 static void region_alloc(task* t, void* va, uint32_t len) {
-	uint64_t va_start = PAGE_ROUNDOFF((uint64_t)va, PGSIZE);
-    	uint64_t va_end = PAGE_ROUNDOFF((uint64_t)va+len, PGSIZE);
+	volatile uint64_t va_start = ROUNDDOWN((uint64_t)va, PGSIZE);
+    	volatile uint64_t va_end = ROUNDUP((uint64_t)va+len, PGSIZE);
     	page* p;
     	uint64_t v;
     	//kprintf("Starting va %p\n Ending va %p",va_start,va_end);
@@ -617,7 +620,9 @@ struct vm_area_struct* malloc_vma(struct mm_struct* mm)
 // Will load the user program header through tarfs
 static void load_icode(task* t, char* filename, uint32_t size) {
 	uint64_t offset = is_file_exists(filename);
- 
+	uint64_t start = 0;
+	uint64_t end = 0;
+	 
     	if(offset == 0 || offset == 999) {
         	kprintf("\n Error. File not found in tarfs.");
         	offset = 0;
@@ -656,7 +661,9 @@ static void load_icode(task* t, char* filename, uint32_t size) {
                                 vm->vm_file =(uint64_t)elf;
                                 vm->vm_flags = ph->p_flags;
                                 vm->vm_offset = ph->p_offset; 
-           				
+           			
+				start = vm->vm_start;
+				end = vm->vm_end;	
 			}
         	}
  
@@ -673,11 +680,15 @@ static void load_icode(task* t, char* filename, uint32_t size) {
                         tmp = tmp->vm_next;  // go to the last vma
                 }
 
-                t->heap_vma->vm_start = t->heap_vma->vm_end = ALIGN_DOWN((uint64_t)(tmp->vm_end + 0x1000));  // start from next page (keep the distance)
+		uint64_t val = ALIGN_DOWN((uint64_t)(tmp->vm_end + 0x1000));
+                t->heap_vma->vm_start = val;
+		t->heap_vma->vm_end = val;  // start from next page (keep the distance)
                 t->heap_vma->vm_mmsz = 0x1000;
+		
 
                 region_alloc(t, (void *)t->heap_vma->vm_start, t->heap_vma->vm_mmsz);
-		t->mm->mmap->vm_start = 0x400000;
+		t->mm->mmap->vm_start = start;
+		t->mm->mmap->vm_end = end;
 	}
 }
 
@@ -784,4 +795,43 @@ int fork() {
 	return child_pid;
 }	
 
+uint64_t execvpe(char* arg1, uint64_t arg2, uint64_t arg3) {
+	
+    	char* tmp_pathname = (char *)arg1;
+    	kprintf("filename=%s\n", tmp_pathname);
+   
+    	char pathname[1024];
+    	strcpy(pathname,tmp_pathname); 
+	
+	runQueue* pr = createProcess(pathname);
+
+	pr->process.pid = currProcess->process.pid;
+	pr->process.ppid = currProcess->process.pid;
+	
+	returnToKernel(0);
+	return 0;
+}
+
+void displayProcess() {
+
+	runQueue* temp = currProcess;
+	runQueue* temp1 = temp->next;
+	kprintf("\n PID: %d  PPID: %d", temp->process.pid, temp->process.ppid);
+	while(temp1 != temp) {	
+		kprintf("\n PID: %d  PPID: %d", temp->process.pid, temp->process.ppid);
+		temp1 = temp1->next;
+	}
+}
+
+void* malloc(uint32_t size) {
+	uint64_t old = currProcess->process.heap_vma->vm_end;
+    	currProcess->process.heap_vma->vm_end = currProcess->process.heap_vma->vm_end + size;   
+    	// kprintf("Malloc %p\n",old);
+	if(currProcess->process.heap_vma->vm_end - currProcess->process.heap_vma->vm_start > 0x1000)
+    	{
+        	kprintf("Can't allocate memory\n");
+        	return NULL;
+    	}
+    	return (void *)old;
+}
 

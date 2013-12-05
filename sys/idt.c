@@ -131,7 +131,8 @@ void handler_syscall() {
         	                :"=b"(size)
                 	        :
                         	);
-			uint64_t returnAddr = kmalloc((uint32_t)size);
+			//uint64_t returnAddr = kmalloc((uint32_t)size);
+			void* returnAddr = malloc((uint32_t)size);
 			/*
 			int num = 0;
 			if((size % 4096) != 0) {
@@ -177,7 +178,19 @@ void handler_syscall() {
                         );
 		}
 		else if(syscall_no == 7) {					// execvpe
-			// TODO: execvpe system call
+			char* buf;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"((char* )buf)
+                                :
+                        );
+			int ret = execvpe(buf, NULL, NULL);
+			__asm__ __volatile__(
+                                "movq %0, %%rax;"
+                                :
+                                :"a" ((uint64_t)ret)
+                                :"cc", "memory"
+                        );
 		}
 		else if(syscall_no == 8) {					// sleep
 			// TODO: sleep system call

@@ -264,8 +264,26 @@ int read_file(uint64_t file_addr, int size, uint64_t buf)
         	tmp[i++] = *file_start_addr++;
     	}    
     	tmp[i]='\0';
-    	kprintf("\n");
-    	kprintf("%s", tmp);
+    //	kprintf("\n");
+    //	kprintf("%s", tmp);
     	return size;
+}
+
+void close(uint64_t file_addr)
+//	kprintf("Inside close file");
+{
+
+	unsigned long* file = (unsigned long* )file_addr;
+	*file = 0;
+	kprintf("\nFile at %p has been closed",file_addr);
+}
+
+void closedir(uint64_t dir_addr)
+//      kprintf("Inside close file");
+{
+
+        unsigned long* dir = (unsigned long* )dir_addr;
+        *dir = 0;
+        kprintf("\nDirectory at %p has been closed",dir_addr);
 }
 

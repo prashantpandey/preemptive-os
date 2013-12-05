@@ -239,6 +239,25 @@ void handler_syscall() {
                                 :"cc", "memory"
                         );
 		}
+		else if(syscall_no == 14) {					///Close file
+                        uint64_t file_addr;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(file_addr)
+                                :
+                        );
+			close(file_addr);
+                }
+
+		else if(syscall_no == 15) {					///Close Directory
+                        uint64_t dir_addr;
+                        __asm__ __volatile__(
+                                "movq %%rbx, %0;"
+                                :"=b"(dir_addr)
+                                :
+                        );
+			closedir(dir_addr);
+                }
 }
 
 /* Handles the Interrupt Service Routines(ISRs) when software interrupts are triggered */

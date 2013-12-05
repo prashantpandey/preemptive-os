@@ -21,6 +21,8 @@ extern char kernmem, physbase;
 
 void test() {
 	// kprintf("\nHello World..!!");
+
+	// Testing scanf 
 	/*
         char p[100];
         kscanf(p);
@@ -32,6 +34,8 @@ void test() {
         //kprintf("\n %s", p);
         */
 	
+
+	// Testing various functions of tarfs
 	uint64_t addr = open_dir("bin/");
 	// kprintf("\n%p", addr);
 	read_dir("bin/");
@@ -47,7 +51,6 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 {
 	map_physical_address(modulep, physbase, physfree);
 	// kernel starts here
-	//print_hello_world();
 
 	// Will reload the gdt
         reload_gdt();
@@ -70,7 +73,7 @@ void start(uint32_t* modulep, void* physbase, void* physfree)
 	initContextSwitch((uint64_t *)stack);
 	
 	__asm__ __volatile__("sti");
-	// showShell();
+	
 	//test();
 		
 	while(1);

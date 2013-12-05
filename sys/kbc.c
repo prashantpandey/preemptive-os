@@ -216,63 +216,6 @@ int kscanf(char* buffer) {
 		break;
 		}
 	}
-//	while(kb_interrupt == true && scanFlag == true)
-//	{
-	//	var =  strcpy((char*) var, input_char);
-//		*in_scanf++ = input_char;
-	
-//		kprintf("Scanning input finished");
-//		kprintf("%s",in_scanf);
-//	}
-		//memset(kbip, 0, 100);
-//		}
-	// scanFlag = false;
-	
-	//int* p_int;
-	
-	kprintf("Reaching");		
-	if(*(++fmt) == 'c') {
-		kprintf("Inside if");
-		char p_char = kbip;
-                var = (void*) &p_char;
-	}
-	kprintf("exit");
-	*/
-	/*
-	switch(*fmt)
-	{
-		case 'c':
-			*p_char = kbip;
-			var = (void*) p_char; 			
-			break;
-		case 'd':
-			if(!scanFlag) {
-				str[i++] = kbip;
-			}
-			else {
-				str[i++] = '\n';
-				scanFlag = true;
-				*p_int = stoi(str);
-				var = (void*) p_int;
-			}
-			break;
-		case 's':
-			if(!scanFlag) {
-                                str[i++] = kbip;
-                        }
-                        else {
-                                str[i++] = '\n';
-                                scanFlag = true;
-                                var = (void*)str;
-                        }
-			break;
-		case 'x':
-			break;
-		default:
-			kprintf("Invalid scanf argument..!!");
-			break;
-	}
-	*/
-
+*/
 	return 0;
 }

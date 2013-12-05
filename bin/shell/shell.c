@@ -47,22 +47,13 @@ void printStr(char* a)
 int main(int argc, char* argv[], char* envp[]) {
 	int i = 0;
         int c = 0;
-        //int j = 0;
         int temp_count = 0;
-        //char temp_str[20];
         char tokens[5][20];
-        //char buffer_copy[512];
 
         char buffer[512];
         int loop = 1;
         while(loop == 1)
         {
-                /*
-                path = getenv("MYPATH");
-                if(path == NULL)
-                      path = "/bin#.";
-                printf("($MYPATH is %s)\n", path);
-                */
                 printf("\n[myshell:~ $ ] ");
                 scanf((char*)buffer);
 
@@ -85,20 +76,20 @@ int main(int argc, char* argv[], char* envp[]) {
                 }
 		tokens[c][temp_count] = '\0';
 
-                if (strcmp(tokens[0],"ls") == 0)
+                if (strcmp(tokens[0],"ls") == 0)						// calling ls command
                 {
                         readdir(current_dir);
                 }
-                else if (strcmp(tokens[0],"cd") == 0 && c!=0)
+                else if (strcmp(tokens[0],"cd") == 0 && c!=0)					// calling cd command
                 {
                         strcat(current_dir, tokens[1]);
                         printStr(current_dir);
                 }
-                else if (strcmp(tokens[0], "pwd") == 0)
+                else if (strcmp(tokens[0], "pwd") == 0)						// calling pwd command
                 {
                         printStr(current_dir);
                 }
-		else if(strcmp(tokens[0], "ps") == 0) 
+		else if(strcmp(tokens[0], "ps") == 0) 						// calling ps command
 		{
 			ps();
 		}
@@ -107,14 +98,14 @@ int main(int argc, char* argv[], char* envp[]) {
                 {
                         buffer[i]='\0';
                 }
-                // printf("Command: %s", command);
 
+		/*
                 if(strcmp(tokens[0],"exit") == 0 || strcmp(tokens[0], "quit") == 0)
                 {
                         loop = 0;
                         printf("Program Terminated\n");
                 }
-              	// parse(command, path);
+		*/
         }
         return 0;
 }

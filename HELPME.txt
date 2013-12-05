@@ -1,0 +1,42 @@
+Project : Pre-emptive multitasking OS
+
+Implementations:-
+
+1)Hardware and Software Interrupts: keyboard, timer, division by zero etc.
+2)Virtual Memory Layout - Self referencing has not been used.
+3)Context Switching on the basis of timer has been implemented to switch between the processes on the basis of timer ticks
+3)Kernel - kprintf, kscanf 
+4)syscalls - Following syscalls have been implemented (Change the dir of syscalls)
+
+	1 printf
+	2 scanf
+	3 malloc
+	4 getpid
+	5 exit
+	6 fork
+	7 execvpe
+	8 sleep 
+	9 wait
+	10 opendir
+	11 readdir
+	12 open file
+	13 read file
+	14 close file
+	15 close directory
+	16 ps
+	
+
+5)ELF Paring using tarfs
+6)minimal API - 
+	malloc, exit, printf, scanf, opendir, readdir, closedir, open, read, close, sleep, getpid
+7)A dummy shell has been implemented which takes commands like cd, pwd, ls
+	A rough version of these commands has been given.
+
+Note:- The project is not completed.
+       Core functionalities like context switching, syscalls, API, fork etc are there but not integrated completely with shell.
+
+Test Cases:-
+
+The kernel loads with a shell which has basic ls, cd, ps and pwd.
+The test cases for syscalls have been placed in the binary file under bin/hello/hello.c
+

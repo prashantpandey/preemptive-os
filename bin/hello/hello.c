@@ -17,7 +17,7 @@ int main(int argc, char* argv[], char* envp[]) {
 	*/
 	
 	printf("\nProcess 1\n");
-	// printf("Hello World..!!\n");
+	printf("Hello World..!!\n");
 	
 	// Checking malloc system call
 	char* buffer = (char* )malloc(512);
@@ -53,15 +53,15 @@ int main(int argc, char* argv[], char* envp[]) {
         int size = read(open("bin/hello/hello.c"), 32, (uint64_t) buf);
         printf("\nSize of hello.c %d", size);
 	*/
-	/*
-	int id = fork();
+	
+	id = fork();
 	if(id == 0) {
 		printf("Child is here..!!");
 	}	
 	else {
 		printf("Parent is here");
 	}
-	*/
+	
 	
 	while(1);
 	return 0;

@@ -454,7 +454,7 @@ int kprintf(const char *fmt, ...)
                                 continue;
                         case 's':
 				i = 0;
-                                str_temp = va_arg(args, char [1024]);
+                                str_temp = va_arg(args, char[1024]);
                                 len = strlen(str_temp);
                                 while(i < len)
                                 {

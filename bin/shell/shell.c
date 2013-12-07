@@ -82,12 +82,15 @@ int main(int argc, char* argv[], char* envp[]) {
                 }
                 else if (strcmp(tokens[0],"cd") == 0 && c!=0)					// calling cd command
                 {
-                        strcat(current_dir, tokens[1]);
+                        strcat(current_dir, tokens[1]);	
+			// printStr(tokens[1]);
                         printStr(current_dir);
+			// printf("%s", &current_dir);
                 }
                 else if (strcmp(tokens[0], "pwd") == 0)						// calling pwd command
                 {
                         printStr(current_dir);
+			// printf("%s", &current_dir);
                 }
 		else if(strcmp(tokens[0], "ps") == 0) 						// calling ps command
 		{

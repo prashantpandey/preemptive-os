@@ -1,0 +1,47 @@
+Project : Pre-emptive multitasking OS
+
+Implementations:-
+
+1)Hardware and Software Interrupts: keyboard, timer, division by zero, general protection fault, page fault etc.
+2)Virtual Memory Layout - Self referencing has not been used. We have used an offset to convert PhysicalAddr to VirtualAddr and vice-versa.
+Memory layout can be found in "include/mmu.h".
+3)Context Switching on the basis of timer has been implemented to switch between the processes on the basis of timer ticks.
+By default when the kernel boots, only one process is there in the run queue which is the shell process. It supports basic minimum commands.
+If you want to try out context switching with other process, you can edit "sys/process.c:initContextSwitch()" to load different ".c" files. 
+3)Kernel - kprintf, kscanf 
+4)syscalls - Following syscalls have been implemented (Change the dir of syscalls)
+
+	1 printf
+	2 scanf
+	3 malloc
+	4 getpid
+	5 exit
+	6 fork
+	7 execvpe
+	8 sleep 
+	9 wait
+	10 opendir
+	11 readdir
+	12 open file
+	13 read file
+	14 close file
+	15 close directory
+	16 ps
+	
+
+5)ELF Parsing using tarfs
+6)minimal API - 
+	malloc, exit, printf, scanf, opendir, readdir, closedir, open, read, close, sleep, getpid
+7)A dummy shell has been implemented which takes commands like pwd, ls, ps.
+	A rough version of these commands has been given.
+8) We have implemented a round-robin scheduler for scheduling the tasks in runQueue (circular run queue).
+
+Note:- The project is partially working.
+       Core functionalities like context switching, syscalls, API, fork etc are implemented. 
+       Few functionalities can be accessed through terminal and for others a test ".c" has to be used. Other details 
+       are in the below section.
+
+Test Cases:-
+The kernel loads with a default terminal which interfaces with a shell in the user-mode, which has basic ls, ps and pwd commands supported.
+The test cases for syscalls have been placed in the binary file under bin/hello/hello.c
+
